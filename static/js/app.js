@@ -1,6 +1,7 @@
 // --- Estado ---
 let scanResults = {};
 let activeFilter = 'all';
+let activeSourceFilter = 'all';
 
 // --- Escaneo progresivo con caché ---
 
@@ -133,6 +134,7 @@ function updateCardBadge(card, category) {
     if (cat.includes('REQUIERE')) {
         badge.className = 'category-badge cat-danger';
         badge.textContent = 'IMPORTANTE';
+        card.classList.add('has-actions');
     } else if (cat.includes('INFORMATIVO')) {
         badge.className = 'category-badge cat-warning';
         badge.textContent = 'INFO';
@@ -165,29 +167,80 @@ function updateCounts() {
 
 function filterEmails(filter) {
     activeFilter = filter;
-    const cards = document.querySelectorAll('.email-card[data-source]');
+    applyAllFilters();
 
-    cards.forEach(card => {
-        const cat = (card.dataset.category || '').toUpperCase();
-        if (filter === 'all') {
-            card.style.display = '';
-        } else if (filter === 'requiere') {
-            card.style.display = cat.includes('REQUIERE') ? '' : 'none';
-        } else if (filter === 'informativo') {
-            card.style.display = cat.includes('INFORMATIVO') ? '' : 'none';
-        } else if (filter === 'spam') {
-            card.style.display = (cat.includes('SPAM') || cat.includes('MARKETING')) ? '' : 'none';
-        }
-    });
-
-    // Actualizar pills
+    // Actualizar pills de categoría
     document.querySelectorAll('.pill[data-filter]').forEach(pill => {
         pill.classList.toggle('active', pill.dataset.filter === filter);
     });
 }
 
+function filterBySource(source) {
+    activeSourceFilter = source;
+    applyAllFilters();
+
+    // Actualizar pills de fuente
+    document.querySelectorAll('.pill[data-source-filter]').forEach(pill => {
+        pill.classList.toggle('active', pill.dataset.sourceFilter === source);
+    });
+}
+
+function applyAllFilters() {
+    const cards = document.querySelectorAll('.email-card[data-source]');
+
+    cards.forEach(card => {
+        const cat = (card.dataset.category || '').toUpperCase();
+        const source = card.dataset.source || '';
+
+        // Filtro por categoría
+        let showByCat = true;
+        if (activeFilter === 'requiere') {
+            showByCat = cat.includes('REQUIERE');
+        } else if (activeFilter === 'informativo') {
+            showByCat = cat.includes('INFORMATIVO');
+        } else if (activeFilter === 'spam') {
+            showByCat = cat.includes('SPAM') || cat.includes('MARKETING');
+        }
+
+        // Filtro por fuente
+        let showBySource = true;
+        if (activeSourceFilter !== 'all') {
+            showBySource = source === activeSourceFilter;
+        }
+
+        card.style.display = (showByCat && showBySource) ? '' : 'none';
+    });
+}
+
 function applyFilter() {
-    filterEmails(activeFilter);
+    applyAllFilters();
+}
+
+// --- Archivar desde la lista ---
+
+async function archiveFromList(source, emailId, btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm" style="width:12px;height:12px;border-width:1.5px;"></span>';
+
+    try {
+        const resp = await fetch(`/email/${source}/${emailId}/archive`, { method: 'POST' });
+        const data = await resp.json();
+        if (data.status === 'ok') {
+            btn.innerHTML = '<i class="bi bi-check2"></i>';
+            btn.classList.add('archived');
+            const card = btn.closest('.email-card');
+            if (card) {
+                card.style.opacity = '0.3';
+                setTimeout(() => card.remove(), 1000);
+            }
+        } else {
+            btn.innerHTML = '<i class="bi bi-x"></i>';
+            btn.disabled = false;
+        }
+    } catch (e) {
+        btn.innerHTML = '<i class="bi bi-x"></i>';
+        btn.disabled = false;
+    }
 }
 
 // --- Análisis individual (email_detail) ---

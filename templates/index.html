@@ -29,6 +29,23 @@
         </div>
     </div>
 
+    <!-- Filtro por cuenta (visible solo en móvil) -->
+    {% if sources|length > 1 %}
+    <div class="mobile-source-filter" id="mobile-source-filter">
+        <div class="filter-pills">
+            <button class="pill active" onclick="filterBySource('all')" data-source-filter="all">
+                <i class="bi bi-collection"></i> Todas
+            </button>
+            {% for s in sources %}
+            <button class="pill" onclick="filterBySource('{{ s.name }}')" data-source-filter="{{ s.name }}">
+                {% if s.type == 'gmail' %}<i class="bi bi-google" style="color:#ea4335;"></i>{% elif s.type == 'outlook' %}<i class="bi bi-microsoft" style="color:#0078d4;"></i>{% else %}<i class="bi bi-envelope-fill"></i>{% endif %}
+                {{ s.name }}
+            </button>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
     <!-- Barra de escaneo -->
     <div class="scan-bar" id="scan-bar">
         <div class="d-flex align-items-center gap-2">
@@ -65,7 +82,23 @@
                 <div class="email-snippet">{{ email.snippet }}</div>
             </div>
             <div class="email-card-right">
-                <span class="source-dot source-{{ email.source|lower }}" title="{{ email.source }}"></span>
+                <span class="source-icon" title="{{ email.source }}">
+                    {% if email.source == 'Gmail' %}
+                    <i class="bi bi-google" style="color:#ea4335; font-size:0.85rem;"></i>
+                    {% elif email.source == 'Outlook' %}
+                    <i class="bi bi-microsoft" style="color:#0078d4; font-size:0.85rem;"></i>
+                    {% else %}
+                    <i class="bi bi-envelope-fill" style="color:var(--accent); font-size:0.85rem;"></i>
+                    {% endif %}
+                </span>
+                <div class="email-card-actions" data-actions-id="{{ email.id }}">
+                    <button class="btn-action btn-action-view" onclick="event.preventDefault(); window.location.href='/email/{{ email.source }}/{{ email.id }}';" title="Ver">
+                        <i class="bi bi-eye"></i>
+                    </button>
+                    <button class="btn-action btn-action-archive" onclick="event.preventDefault(); archiveFromList('{{ email.source }}', '{{ email.id }}', this);" title="Archivar">
+                        <i class="bi bi-archive"></i>
+                    </button>
+                </div>
             </div>
         </a>
         {% endfor %}

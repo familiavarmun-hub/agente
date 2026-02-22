@@ -407,6 +407,69 @@ body {
 }
 
 /* --- Source indicators --- */
+.source-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+}
+
+/* --- Action buttons in email list (visible on important emails) --- */
+.email-card-actions {
+    display: none;
+    gap: 4px;
+}
+
+.email-card.has-actions .email-card-actions {
+    display: flex;
+}
+
+.btn-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    background: var(--bg-base);
+    color: var(--text-3);
+    cursor: pointer;
+    font-size: 0.75rem;
+    transition: all var(--transition);
+}
+
+.btn-action:hover {
+    color: var(--text-1);
+    background: var(--bg-hover);
+    border-color: rgba(255,255,255,0.12);
+}
+
+.btn-action-view:hover {
+    color: var(--accent);
+    border-color: rgba(99, 102, 241, 0.3);
+    background: var(--accent-dim);
+}
+
+.btn-action-archive:hover {
+    color: var(--amber);
+    border-color: rgba(251, 191, 36, 0.3);
+    background: var(--amber-dim);
+}
+
+.btn-action-archive.archived {
+    color: var(--green);
+    border-color: rgba(52, 211, 153, 0.3);
+    background: var(--green-dim);
+}
+
+/* --- Mobile source filter --- */
+.mobile-source-filter {
+    display: none;
+    margin-bottom: 12px;
+}
+
 .source-dot {
     width: 7px;
     height: 7px;
@@ -697,6 +760,7 @@ body {
     .sidebar { display: none; }
     .detail-grid { grid-template-columns: 1fr; }
     .inbox-container { padding: 16px; }
+    .mobile-source-filter { display: block; }
 }
 
 @media (max-width: 768px) {
