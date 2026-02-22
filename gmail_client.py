@@ -95,11 +95,14 @@ class GmailClient:
         )
         return flow
 
-    def authenticate_with_code(self, flow: Flow, code: str) -> bool:
+    def authenticate_with_code(self, flow: Flow, code: str, code_verifier: str = None) -> bool:
         """Completa la autenticación con el código de autorización del callback."""
         import os
         os.environ["OAUTHLIB_RELAX_TOKEN_SCOPE"] = "1"
-        flow.fetch_token(code=code)
+        kwargs = {"code": code}
+        if code_verifier:
+            kwargs["code_verifier"] = code_verifier
+        flow.fetch_token(**kwargs)
         self.creds = flow.credentials
         config.GMAIL_TOKEN_FILE.write_text(self.creds.to_json())
         self.service = build("gmail", "v1", credentials=self.creds)

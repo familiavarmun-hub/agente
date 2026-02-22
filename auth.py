@@ -1,6 +1,9 @@
 """
 Blueprint de autenticación para Gmail, Outlook e IMAP.
 """
+import hashlib
+import base64
+import secrets
 import threading
 
 from flask import Blueprint, redirect, url_for, session, render_template, jsonify, flash, request
@@ -26,13 +29,23 @@ def gmail_connect():
     try:
         redirect_uri = config.GMAIL_REDIRECT_URI or url_for("auth.gmail_callback", _external=True)
         flow = get_gmail_client().create_auth_flow(redirect_uri)
+
+        # PKCE: generar code_verifier y code_challenge
+        code_verifier = secrets.token_urlsafe(43)
+        code_challenge = base64.urlsafe_b64encode(
+            hashlib.sha256(code_verifier.encode("ascii")).digest()
+        ).rstrip(b"=").decode("ascii")
+
         authorization_url, state = flow.authorization_url(
             access_type="offline",
             include_granted_scopes="true",
             prompt="consent",
+            code_challenge=code_challenge,
+            code_challenge_method="S256",
         )
         session["gmail_oauth_state"] = state
         session["gmail_redirect_uri"] = redirect_uri
+        session["gmail_code_verifier"] = code_verifier
         return redirect(authorization_url)
     except Exception as e:
         flash(f"Error al conectar Gmail: {e}", "error")
@@ -51,9 +64,10 @@ def gmail_callback():
 
     try:
         redirect_uri = session.pop("gmail_redirect_uri", config.GMAIL_REDIRECT_URI or url_for("auth.gmail_callback", _external=True))
+        code_verifier = session.pop("gmail_code_verifier", None)
         flow = get_gmail_client().create_auth_flow(redirect_uri)
         gmail = get_gmail_client()
-        gmail.authenticate_with_code(flow, code)
+        gmail.authenticate_with_code(flow, code, code_verifier=code_verifier)
         set_gmail_connected(True)
         flash("Gmail conectado exitosamente.", "success")
     except Exception as e:
