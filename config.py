@@ -20,7 +20,7 @@ GMAIL_TOKEN_FILE = BASE_DIR / "gmail_token.json"
 
 # En producción, crear gmail_credentials.json desde variable de entorno
 _gmail_creds_json = os.getenv("GMAIL_CREDENTIALS_JSON", "")
-if _gmail_creds_json and not GMAIL_CREDENTIALS_FILE.exists():
+if _gmail_creds_json:
     GMAIL_CREDENTIALS_FILE.write_text(_gmail_creds_json)
 GMAIL_SCOPES = [
     "https://www.googleapis.com/auth/gmail.modify",
