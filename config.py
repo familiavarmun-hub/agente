@@ -47,8 +47,16 @@ except (json.JSONDecodeError, TypeError):
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 OPENAI_MODEL = "gpt-4o"
 
-# --- Seguridad ---
-APP_PASSWORD = os.getenv("APP_PASSWORD", "")
+# --- Base de datos ---
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///email_agent.db")
+
+# --- Cifrado de tokens ---
+TOKEN_ENCRYPTION_KEY = os.getenv("TOKEN_ENCRYPTION_KEY", "")
+
+# --- Google Sign-In (autenticación de usuarios, NO Gmail API) ---
+GOOGLE_SIGN_IN_CLIENT_ID = os.getenv("GOOGLE_SIGN_IN_CLIENT_ID", "")
+GOOGLE_SIGN_IN_CLIENT_SECRET = os.getenv("GOOGLE_SIGN_IN_CLIENT_SECRET", "")
+GOOGLE_SIGN_IN_REDIRECT_URI = os.getenv("GOOGLE_SIGN_IN_REDIRECT_URI", "http://127.0.0.1:5000/auth/google/callback")
 
 # --- General ---
 MAX_EMAILS_TO_FETCH = 50

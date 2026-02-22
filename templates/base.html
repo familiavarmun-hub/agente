@@ -171,11 +171,30 @@
                     {% endfor %}
                 </div>
 
-                <div class="mt-auto pt-4">
+                <div class="mt-auto pt-4 space-y-3">
                     <a href="{{ url_for('auth.imap_add') }}" class="w-full flex items-center justify-center gap-2 py-2.5 bg-primary hover:bg-primary/90 text-white rounded-lg transition-all shadow-lg shadow-primary/20 no-underline">
                         <span class="material-symbols-outlined text-[18px]">add</span>
                         <span class="text-sm font-bold">Agregar cuenta</span>
                     </a>
+
+                    {% if user %}
+                    <div class="flex items-center gap-3 px-2 py-2 border-t border-primary/10 pt-3">
+                        {% if user.picture %}
+                        <img src="{{ user.picture }}" alt="" class="size-8 rounded-full">
+                        {% else %}
+                        <div class="size-8 rounded-full bg-primary/20 flex items-center justify-center text-sm font-bold text-primary">
+                            {{ user.name[0]|upper }}
+                        </div>
+                        {% endif %}
+                        <div class="flex flex-col flex-1 min-w-0">
+                            <span class="text-xs font-medium truncate">{{ user.name }}</span>
+                            <span class="text-[10px] text-slate-500 truncate">{{ user.email }}</span>
+                        </div>
+                        <a href="{{ url_for('logout') }}" class="text-slate-500 hover:text-red-400 transition-colors" title="Cerrar sesión">
+                            <span class="material-symbols-outlined text-[18px]">logout</span>
+                        </a>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
         </aside>

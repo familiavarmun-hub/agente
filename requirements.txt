@@ -7,4 +7,8 @@ openai
 rich
 python-dotenv
 flask
+flask-sqlalchemy
+flask-login
+pymysql
+cryptography
 gunicorn

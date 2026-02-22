@@ -1,5 +1,6 @@
 """
-Blueprint de autenticación para Gmail, Outlook e IMAP.
+Blueprint de autenticación para conexión de cuentas de email (Gmail, Outlook, IMAP).
+Cada conexión se guarda cifrada en la DB para el usuario autenticado.
 """
 import hashlib
 import base64
@@ -7,47 +8,33 @@ import secrets
 import threading
 
 from flask import Blueprint, redirect, url_for, session, render_template, jsonify, flash, request
+from flask_login import login_required, current_user
 
 import config
-from email_service import (
-    get_gmail_client, get_outlook_client,
-    set_gmail_connected, set_outlook_connected,
-    add_imap_client, remove_imap_client,
-)
+from gmail_client import GmailClient
+from outlook_client import OutlookClient
+from user_session import get_user_session
+from imap_client import ImapClient
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/auth")
 
 
-@auth_bp.before_request
-def require_login():
-    """Proteger todas las rutas de auth excepto el callback de Gmail."""
-    if not config.APP_PASSWORD:
-        return  # Sin contraseña → acceso libre
-    # Gmail callback debe ser público (Google redirige aquí)
-    if request.endpoint == "auth.gmail_callback":
-        return
-    # Outlook poll también (se usa durante el device flow)
-    if request.endpoint == "auth.outlook_poll":
-        return
-    if not session.get("authenticated"):
-        return redirect(url_for("login"))
-
-
-# Estado del device flow de Outlook (por sesión)
-_outlook_auth_state: dict = {}  # {"flow": dict, "thread": Thread, "result": str}
+# Estado del device flow de Outlook (por usuario)
+_outlook_auth_state: dict = {}  # user_id -> {"flow": dict, "thread": Thread, "result": str}
 
 
 # --- Gmail ---
 
 @auth_bp.route("/gmail/connect")
+@login_required
 def gmail_connect():
-    """Redirige al usuario a la pantalla de autorización de Google."""
+    """Redirige al usuario a la pantalla de autorización de Google (Gmail API)."""
     try:
         redirect_uri = config.GMAIL_REDIRECT_URI or url_for("auth.gmail_callback", _external=True)
-        print(f"[DEBUG GMAIL] Redirect URI: '{redirect_uri}'")
-        flow = get_gmail_client().create_auth_flow(redirect_uri)
+        client = GmailClient()
+        flow = client.create_auth_flow(redirect_uri)
 
-        # PKCE: generar code_verifier y code_challenge
+        # PKCE
         code_verifier = secrets.token_urlsafe(43)
         code_challenge = base64.urlsafe_b64encode(
             hashlib.sha256(code_verifier.encode("ascii")).digest()
@@ -59,7 +46,6 @@ def gmail_connect():
             code_challenge=code_challenge,
             code_challenge_method="S256",
         )
-        print(f"[DEBUG GMAIL] Auth URL: {authorization_url}")
         session["gmail_oauth_state"] = state
         session["gmail_redirect_uri"] = redirect_uri
         session["gmail_code_verifier"] = code_verifier
@@ -72,20 +58,30 @@ def gmail_connect():
 @auth_bp.route("/gmail/callback")
 def gmail_callback():
     """Callback de OAuth2 de Google. Recibe el código de autorización."""
-    from flask import request
-
     code = request.args.get("code")
     if not code:
         flash("No se recibió código de autorización de Google.", "error")
         return redirect(url_for("index"))
 
+    if not current_user.is_authenticated:
+        flash("Debes iniciar sesión primero.", "error")
+        return redirect(url_for("login"))
+
     try:
-        redirect_uri = session.pop("gmail_redirect_uri", config.GMAIL_REDIRECT_URI or url_for("auth.gmail_callback", _external=True))
+        redirect_uri = session.pop("gmail_redirect_uri",
+                                    config.GMAIL_REDIRECT_URI or url_for("auth.gmail_callback", _external=True))
         code_verifier = session.pop("gmail_code_verifier", None)
-        flow = get_gmail_client().create_auth_flow(redirect_uri)
-        gmail = get_gmail_client()
-        gmail.authenticate_with_code(flow, code, code_verifier=code_verifier)
-        set_gmail_connected(True)
+
+        client = GmailClient()
+        flow = client.create_auth_flow(redirect_uri)
+        creds_dict = client.authenticate_with_code(flow, code, code_verifier=code_verifier)
+
+        # Guardar en sesión del usuario
+        sess = get_user_session(current_user.id)
+        sess.gmail_client = client
+        sess.gmail_connected = True
+        sess.save_gmail_credentials(creds_dict)
+
         flash("Gmail conectado exitosamente.", "success")
     except Exception as e:
         flash(f"Error al autenticar Gmail: {e}", "error")
@@ -94,14 +90,11 @@ def gmail_callback():
 
 
 @auth_bp.route("/gmail/disconnect")
+@login_required
 def gmail_disconnect():
-    """Desconecta Gmail eliminando el token."""
-    if config.GMAIL_TOKEN_FILE.exists():
-        config.GMAIL_TOKEN_FILE.unlink()
-    gmail = get_gmail_client()
-    gmail.service = None
-    gmail.creds = None
-    set_gmail_connected(False)
+    """Desconecta Gmail del usuario actual."""
+    sess = get_user_session(current_user.id)
+    sess.disconnect_account("gmail")
     flash("Gmail desconectado.", "info")
     return redirect(url_for("index"))
 
@@ -109,32 +102,33 @@ def gmail_disconnect():
 # --- Outlook ---
 
 @auth_bp.route("/outlook/connect")
+@login_required
 def outlook_connect():
-    """Inicia el device code flow de Outlook y muestra el código al usuario."""
+    """Inicia el device code flow de Outlook."""
     global _outlook_auth_state
 
-    outlook = get_outlook_client()
-
-    # Intentar auth silencioso primero
-    if outlook.try_silent_auth():
-        set_outlook_connected(True)
-        flash("Outlook conectado exitosamente.", "success")
-        return redirect(url_for("index"))
+    sess = get_user_session(current_user.id)
+    client = OutlookClient()
 
     # Iniciar device flow
-    flow = outlook.start_device_flow()
+    flow = client.start_device_flow()
     if not flow:
         flash("Error al iniciar autenticación de Outlook. Verifica OUTLOOK_CLIENT_ID.", "error")
         return redirect(url_for("index"))
 
-    # Ejecutar la espera en un thread de fondo
+    user_id = current_user.id
+
     def _auth_worker():
         global _outlook_auth_state
-        success = outlook.complete_device_flow(flow)
-        _outlook_auth_state["result"] = "success" if success else "error"
+        success = client.complete_device_flow(flow)
+        if success:
+            _outlook_auth_state[user_id]["result"] = "success"
+            _outlook_auth_state[user_id]["client"] = client
+        else:
+            _outlook_auth_state[user_id]["result"] = "error"
 
     t = threading.Thread(target=_auth_worker, daemon=True)
-    _outlook_auth_state = {"flow": flow, "thread": t, "result": "pending"}
+    _outlook_auth_state[user_id] = {"flow": flow, "thread": t, "result": "pending"}
     t.start()
 
     return render_template(
@@ -145,32 +139,40 @@ def outlook_connect():
 
 
 @auth_bp.route("/outlook/poll")
+@login_required
 def outlook_poll():
     """Endpoint AJAX para verificar si el device flow de Outlook se completó."""
     global _outlook_auth_state
 
-    result = _outlook_auth_state.get("result", "pending")
+    user_id = current_user.id
+    state = _outlook_auth_state.get(user_id, {})
+    result = state.get("result", "pending")
 
     if result == "success":
-        set_outlook_connected(True)
-        _outlook_auth_state = {}
+        client = state.get("client")
+        sess = get_user_session(user_id)
+        sess.outlook_client = client
+        sess.outlook_connected = True
+
+        # Guardar token cache cifrado
+        cache_data = client.get_token_cache_data()
+        sess.save_outlook_credentials(cache_data)
+
+        _outlook_auth_state.pop(user_id, None)
         return jsonify({"status": "success"})
     elif result == "error":
-        _outlook_auth_state = {}
+        _outlook_auth_state.pop(user_id, None)
         return jsonify({"status": "error", "message": "Error de autenticación"})
     else:
         return jsonify({"status": "pending"})
 
 
 @auth_bp.route("/outlook/disconnect")
+@login_required
 def outlook_disconnect():
-    """Desconecta Outlook eliminando la caché de tokens."""
-    if config.OUTLOOK_TOKEN_CACHE.exists():
-        config.OUTLOOK_TOKEN_CACHE.unlink()
-    outlook = get_outlook_client()
-    outlook.access_token = None
-    outlook._app = None
-    set_outlook_connected(False)
+    """Desconecta Outlook del usuario actual."""
+    sess = get_user_session(current_user.id)
+    sess.disconnect_account("outlook")
     flash("Outlook desconectado.", "info")
     return redirect(url_for("index"))
 
@@ -178,6 +180,7 @@ def outlook_disconnect():
 # --- IMAP ---
 
 @auth_bp.route("/imap/add", methods=["GET", "POST"])
+@login_required
 def imap_add():
     """Formulario para agregar una cuenta IMAP."""
     if request.method == "POST":
@@ -193,7 +196,15 @@ def imap_add():
             flash("Todos los campos obligatorios deben estar completos.", "error")
             return render_template("auth/imap_connect.html")
 
-        if add_imap_client(name, host, port, email_addr, password, smtp_host, smtp_port):
+        client = ImapClient(name, host, port, email_addr, password, smtp_host, smtp_port)
+        if client.authenticate():
+            sess = get_user_session(current_user.id)
+            sess.imap_clients[name] = client
+            sess.imap_connected[name] = True
+            sess.save_imap_credentials(name, {
+                "host": host, "port": port, "email": email_addr,
+                "password": password, "smtp_host": smtp_host, "smtp_port": smtp_port,
+            })
             flash(f"Cuenta IMAP '{name}' conectada exitosamente.", "success")
             return redirect(url_for("index"))
         else:
@@ -204,8 +215,10 @@ def imap_add():
 
 
 @auth_bp.route("/imap/disconnect/<name>")
+@login_required
 def imap_disconnect(name):
-    """Desconecta una cuenta IMAP."""
-    remove_imap_client(name)
+    """Desconecta una cuenta IMAP del usuario actual."""
+    sess = get_user_session(current_user.id)
+    sess.disconnect_account("imap", name)
     flash(f"Cuenta '{name}' desconectada.", "info")
     return redirect(url_for("index"))

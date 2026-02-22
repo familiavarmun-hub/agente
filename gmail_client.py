@@ -1,7 +1,9 @@
 """
 Cliente de Gmail usando la API oficial con OAuth2.
+Soporta autenticación desde dict (multi-usuario con DB).
 """
 import base64
+import json
 import re
 from email.mime.text import MIMEText
 from email.utils import parsedate_to_datetime
@@ -34,7 +36,6 @@ def _decode_body(payload: dict) -> str:
             data = part["body"]["data"]
             return base64.urlsafe_b64decode(data).decode("utf-8", errors="replace")
 
-    # Buscar recursivamente en partes anidadas
     for part in parts:
         result = _decode_body(part)
         if result:
@@ -44,7 +45,6 @@ def _decode_body(payload: dict) -> str:
 
 
 def _clean_text(text: str) -> str:
-    """Limpia el texto del correo eliminando exceso de espacios y líneas vacías."""
     text = re.sub(r'\r\n', '\n', text)
     text = re.sub(r'\n{3,}', '\n\n', text)
     return text.strip()
@@ -55,39 +55,34 @@ class GmailClient:
         self.service = None
         self.creds = None
 
-    def authenticate(self) -> bool:
-        """Intenta autenticar con token existente/refrescado. Retorna True si exitoso."""
+    def authenticate_from_dict(self, creds_data: dict) -> bool:
+        """Autentica con credenciales desde un dict (almacenado cifrado en DB)."""
         import os
         os.environ["OAUTHLIB_RELAX_TOKEN_SCOPE"] = "1"
 
-        creds = None
-
-        if config.GMAIL_TOKEN_FILE.exists():
-            try:
-                creds = Credentials.from_authorized_user_file(
-                    str(config.GMAIL_TOKEN_FILE), config.GMAIL_SCOPES
-                )
-            except Exception:
-                # Token con scopes incompatibles, cargar sin restricción
-                creds = Credentials.from_authorized_user_file(
-                    str(config.GMAIL_TOKEN_FILE)
-                )
+        try:
+            creds = Credentials.from_authorized_user_info(creds_data, config.GMAIL_SCOPES)
+        except Exception:
+            creds = Credentials.from_authorized_user_info(creds_data)
 
         if not creds or not creds.valid:
             if creds and creds.expired and creds.refresh_token:
                 creds.refresh(Request())
             else:
-                return False  # Necesita OAuth web flow
-
-            config.GMAIL_TOKEN_FILE.write_text(creds.to_json())
+                return False
 
         self.creds = creds
         self.service = build("gmail", "v1", credentials=creds)
         return True
 
+    def get_credentials_dict(self) -> dict:
+        """Retorna las credenciales actuales como dict para guardar en DB."""
+        if not self.creds:
+            return {}
+        return json.loads(self.creds.to_json())
+
     @staticmethod
     def create_auth_flow(redirect_uri: str) -> Flow:
-        """Crea el flujo OAuth para autenticación web."""
         flow = Flow.from_client_secrets_file(
             str(config.GMAIL_CREDENTIALS_FILE),
             scopes=config.GMAIL_SCOPES,
@@ -95,8 +90,8 @@ class GmailClient:
         )
         return flow
 
-    def authenticate_with_code(self, flow: Flow, code: str, code_verifier: str = None) -> bool:
-        """Completa la autenticación con el código de autorización del callback."""
+    def authenticate_with_code(self, flow: Flow, code: str, code_verifier: str = None) -> dict:
+        """Completa la autenticación. Retorna dict de credenciales para DB."""
         import os
         os.environ["OAUTHLIB_RELAX_TOKEN_SCOPE"] = "1"
         kwargs = {"code": code}
@@ -104,21 +99,17 @@ class GmailClient:
             kwargs["code_verifier"] = code_verifier
         flow.fetch_token(**kwargs)
         self.creds = flow.credentials
-        config.GMAIL_TOKEN_FILE.write_text(self.creds.to_json())
         self.service = build("gmail", "v1", credentials=self.creds)
-        return True
+        return self.get_credentials_dict()
 
     def get_unread_emails(self, max_results: int = None) -> list[dict]:
-        """Obtiene los correos no leídos del buzón."""
         if not self.service:
             return []
 
         max_results = max_results or config.MAX_EMAILS_TO_FETCH
 
         results = self.service.users().messages().list(
-            userId="me",
-            q="is:unread",
-            maxResults=max_results,
+            userId="me", q="is:unread", maxResults=max_results,
         ).execute()
 
         messages = results.get("messages", [])
@@ -152,7 +143,6 @@ class GmailClient:
         return emails
 
     def get_email_by_id(self, email_id: str) -> dict | None:
-        """Obtiene un correo específico por su ID."""
         if not self.service:
             return None
 
@@ -180,27 +170,22 @@ class GmailClient:
         }
 
     def mark_as_read(self, email_id: str) -> bool:
-        """Marca un email como leído removiendo la etiqueta UNREAD."""
         if not self.service:
             return False
         self.service.users().messages().modify(
-            userId="me", id=email_id,
-            body={"removeLabelIds": ["UNREAD"]}
+            userId="me", id=email_id, body={"removeLabelIds": ["UNREAD"]}
         ).execute()
         return True
 
     def archive(self, email_id: str) -> bool:
-        """Archiva un email removiendo la etiqueta INBOX."""
         if not self.service:
             return False
         self.service.users().messages().modify(
-            userId="me", id=email_id,
-            body={"removeLabelIds": ["INBOX", "UNREAD"]}
+            userId="me", id=email_id, body={"removeLabelIds": ["INBOX", "UNREAD"]}
         ).execute()
         return True
 
     def send_email(self, to: str, subject: str, body: str, reply_to_id: str = None) -> bool:
-        """Envía un email o respuesta vía Gmail API."""
         if not self.service:
             return False
 
