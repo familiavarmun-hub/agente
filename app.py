@@ -20,7 +20,17 @@ from ai_responder import analyze_and_respond
 
 app = Flask(__name__)
 app.secret_key = config.FLASK_SECRET_KEY
+app.config['SESSION_COOKIE_SAMESITE'] = 'None'
+app.config['SESSION_COOKIE_SECURE'] = True
 app.register_blueprint(auth_bp)
+
+
+@app.after_request
+def add_iframe_headers(response):
+    """Permitir que la app se incruste como iframe en Waply Fusion."""
+    response.headers.pop('X-Frame-Options', None)
+    response.headers['Content-Security-Policy'] = "frame-ancestors *"
+    return response
 
 
 @app.context_processor
