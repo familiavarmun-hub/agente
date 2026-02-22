@@ -26,7 +26,7 @@ GMAIL_SCOPES = [
     "https://www.googleapis.com/auth/gmail.modify",
     "https://www.googleapis.com/auth/gmail.send",
 ]
-GMAIL_REDIRECT_URI = os.getenv("GMAIL_REDIRECT_URI", "http://127.0.0.1:5000/auth/gmail/callback")
+GMAIL_REDIRECT_URI = os.getenv("GMAIL_REDIRECT_URI", "http://127.0.0.1:5000/auth/gmail/callback").strip().lstrip("=")
 
 # --- Outlook / Hotmail ---
 OUTLOOK_CLIENT_ID = os.getenv("OUTLOOK_CLIENT_ID", "")
