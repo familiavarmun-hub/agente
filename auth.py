@@ -17,6 +17,22 @@ from email_service import (
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/auth")
 
+
+@auth_bp.before_request
+def require_login():
+    """Proteger todas las rutas de auth excepto el callback de Gmail."""
+    if not config.APP_PASSWORD:
+        return  # Sin contraseña → acceso libre
+    # Gmail callback debe ser público (Google redirige aquí)
+    if request.endpoint == "auth.gmail_callback":
+        return
+    # Outlook poll también (se usa durante el device flow)
+    if request.endpoint == "auth.outlook_poll":
+        return
+    if not session.get("authenticated"):
+        return redirect(url_for("login"))
+
+
 # Estado del device flow de Outlook (por sesión)
 _outlook_auth_state: dict = {}  # {"flow": dict, "thread": Thread, "result": str}
 

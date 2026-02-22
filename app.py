@@ -2,8 +2,9 @@
 Aplicación web Flask para el Agente de Correo Electrónico.
 """
 import re
+from functools import wraps
 
-from flask import Flask, render_template, request, jsonify, flash, redirect, url_for
+from flask import Flask, render_template, request, jsonify, flash, redirect, url_for, session
 
 import config
 from auth import auth_bp
@@ -44,7 +45,47 @@ def inject_globals():
     }
 
 
+# --- Autenticación con contraseña ---
+
+def login_required(f):
+    """Decorador: redirige a /login si no está autenticado."""
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if not config.APP_PASSWORD:
+            # Sin contraseña configurada → acceso libre (dev local)
+            return f(*args, **kwargs)
+        if not session.get("authenticated"):
+            return redirect(url_for("login"))
+        return f(*args, **kwargs)
+    return decorated
+
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if not config.APP_PASSWORD:
+        return redirect(url_for("index"))
+    if session.get("authenticated"):
+        return redirect(url_for("index"))
+
+    if request.method == "POST":
+        password = request.form.get("password", "")
+        if password == config.APP_PASSWORD:
+            session["authenticated"] = True
+            return redirect(url_for("index"))
+        else:
+            flash("Contraseña incorrecta.", "error")
+
+    return render_template("login.html")
+
+
+@app.route("/logout")
+def logout():
+    session.pop("authenticated", None)
+    return redirect(url_for("login"))
+
+
 @app.route("/")
+@login_required
 def index():
     source = request.args.get("source", "all")
     emails = []
@@ -56,6 +97,7 @@ def index():
 
 
 @app.route("/emails/fetch")
+@login_required
 def fetch_emails():
     source = request.args.get("source", "all")
     emails = fetch_all_emails(source)
@@ -66,6 +108,7 @@ def fetch_emails():
 
 
 @app.route("/emails/refresh", methods=["POST"])
+@login_required
 def refresh():
     """Fuerza recarga de emails desde las APIs y retorna info de nuevos."""
     source = request.args.get("source", "all")
@@ -74,6 +117,7 @@ def refresh():
 
 
 @app.route("/email/<source>/<path:email_id>")
+@login_required
 def email_detail(source, email_id):
     email = get_cached_email(source, email_id)
     if not email:
@@ -88,6 +132,7 @@ def email_detail(source, email_id):
 
 
 @app.route("/email/<source>/<path:email_id>/analyze", methods=["POST"])
+@login_required
 def analyze_email(source, email_id):
     # Revisar caché primero
     cached = get_analysis(email_id)
@@ -104,11 +149,13 @@ def analyze_email(source, email_id):
 
 
 @app.route("/analysis-cache")
+@login_required
 def analysis_cache():
     return jsonify(get_all_analysis())
 
 
 @app.route("/email/<source>/<path:email_id>/mark-read", methods=["POST"])
+@login_required
 def mark_read(source, email_id):
     success = mark_email_as_read(source, email_id)
     if success:
@@ -117,6 +164,7 @@ def mark_read(source, email_id):
 
 
 @app.route("/email/<source>/<path:email_id>/archive", methods=["POST"])
+@login_required
 def archive(source, email_id):
     success = archive_email(source, email_id)
     if success:
@@ -125,6 +173,7 @@ def archive(source, email_id):
 
 
 @app.route("/email/<source>/<path:email_id>/reply", methods=["POST"])
+@login_required
 def reply_email(source, email_id):
     data = request.get_json() or request.form
     to = data.get("to", "")
@@ -142,6 +191,7 @@ def reply_email(source, email_id):
 
 
 @app.route("/emails/batch/analyze", methods=["POST"])
+@login_required
 def batch_analyze():
     data = request.get_json()
     if not data or "emails" not in data:
@@ -169,6 +219,7 @@ def batch_analyze():
 
 
 @app.route("/status")
+@login_required
 def status():
     return jsonify({
         "gmail": is_gmail_connected(),
