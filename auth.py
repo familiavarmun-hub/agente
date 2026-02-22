@@ -28,6 +28,7 @@ def gmail_connect():
     """Redirige al usuario a la pantalla de autorización de Google."""
     try:
         redirect_uri = config.GMAIL_REDIRECT_URI or url_for("auth.gmail_callback", _external=True)
+        print(f"[DEBUG GMAIL] Redirect URI: '{redirect_uri}'")
         flow = get_gmail_client().create_auth_flow(redirect_uri)
 
         # PKCE: generar code_verifier y code_challenge
@@ -42,6 +43,7 @@ def gmail_connect():
             code_challenge=code_challenge,
             code_challenge_method="S256",
         )
+        print(f"[DEBUG GMAIL] Auth URL: {authorization_url}")
         session["gmail_oauth_state"] = state
         session["gmail_redirect_uri"] = redirect_uri
         session["gmail_code_verifier"] = code_verifier
