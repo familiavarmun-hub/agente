@@ -24,7 +24,7 @@ _outlook_auth_state: dict = {}  # {"flow": dict, "thread": Thread, "result": str
 def gmail_connect():
     """Redirige al usuario a la pantalla de autorización de Google."""
     try:
-        redirect_uri = url_for("auth.gmail_callback", _external=True)
+        redirect_uri = config.GMAIL_REDIRECT_URI or url_for("auth.gmail_callback", _external=True)
         flow = get_gmail_client().create_auth_flow(redirect_uri)
         authorization_url, state = flow.authorization_url(
             access_type="offline",
@@ -50,7 +50,7 @@ def gmail_callback():
         return redirect(url_for("index"))
 
     try:
-        redirect_uri = session.pop("gmail_redirect_uri", url_for("auth.gmail_callback", _external=True))
+        redirect_uri = session.pop("gmail_redirect_uri", config.GMAIL_REDIRECT_URI or url_for("auth.gmail_callback", _external=True))
         flow = get_gmail_client().create_auth_flow(redirect_uri)
         gmail = get_gmail_client()
         gmail.authenticate_with_code(flow, code)
