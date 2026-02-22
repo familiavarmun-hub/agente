@@ -13,13 +13,15 @@ async function startScan() {
     const progressBar = document.getElementById('scan-progress-bar');
     const progress = document.getElementById('scan-progress');
     const scanText = document.getElementById('scan-text');
+    const scanTextContainer = document.getElementById('scan-text-container');
 
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
     progressBar.style.display = 'block';
-    scanText.textContent = 'Cargando caché...';
+    if (scanTextContainer) scanTextContainer.classList.remove('hidden');
+    scanText.textContent = 'Cargando cache...';
 
-    // 1. Cargar caché del servidor (resultados IA previos)
+    // 1. Cargar caché del servidor
     try {
         const cacheResp = await fetch('/analysis-cache');
         const cache = await cacheResp.json();
@@ -31,7 +33,7 @@ async function startScan() {
         updateCounts();
     } catch (e) {}
 
-    // 2. Identificar solo los pendientes (no analizados aún)
+    // 2. Identificar pendientes
     let done = 0;
     const total = cards.length;
     const pending = [];
@@ -49,7 +51,7 @@ async function startScan() {
 
     if (pending.length === 0) {
         scanText.textContent = `Todo listo (${total} emails)`;
-        btn.innerHTML = '<i class="bi bi-check2"></i>';
+        btn.innerHTML = '<span class="material-symbols-outlined text-[18px]">check</span>';
         btn.disabled = false;
         autoFilter();
         return;
@@ -57,7 +59,7 @@ async function startScan() {
 
     scanText.textContent = `${done} cacheados, ${pending.length} nuevos por analizar...`;
 
-    // 3. Solo analizar los nuevos
+    // 3. Analizar los nuevos
     for (const card of pending) {
         const source = card.dataset.source;
         const id = card.dataset.id;
@@ -81,13 +83,13 @@ async function startScan() {
 
     progress.style.width = '100%';
     scanText.textContent = `Listo (${total} emails)`;
-    btn.innerHTML = '<i class="bi bi-check2"></i>';
+    btn.innerHTML = '<span class="material-symbols-outlined text-[18px]">check</span>';
     btn.disabled = false;
     updateCounts();
     autoFilter();
 }
 
-// --- Buscar correos nuevos (sin recargar toda la página) ---
+// --- Buscar correos nuevos ---
 
 async function refreshEmails() {
     const btn = document.getElementById('btn-refresh');
@@ -101,17 +103,16 @@ async function refreshEmails() {
         const data = await resp.json();
 
         if (data.new_count > 0) {
-            // Hay correos nuevos → recargar la página para mostrarlos
             window.location.reload();
         } else {
-            btn.innerHTML = '<i class="bi bi-check2"></i> Sin cambios';
+            btn.innerHTML = '<span class="material-symbols-outlined text-[20px]">check</span>';
             btn.disabled = false;
             setTimeout(() => {
-                btn.innerHTML = '<i class="bi bi-arrow-clockwise"></i>';
+                btn.innerHTML = '<span class="material-symbols-outlined text-[20px]">refresh</span>';
             }, 2000);
         }
     } catch (e) {
-        btn.innerHTML = '<i class="bi bi-x"></i> Error';
+        btn.innerHTML = '<span class="material-symbols-outlined text-[20px]">error</span>';
         btn.disabled = false;
     }
 }
@@ -125,26 +126,54 @@ function autoFilter() {
 }
 
 function updateCardBadge(card, category) {
-    const badge = card.querySelector('.category-badge');
-    if (!badge) return;
-
     const cat = (category || '').toUpperCase();
     card.dataset.category = cat;
 
+    const actionsDiv = card.querySelector('.email-actions');
+    const badge = card.querySelector('.category-badge');
+    const btnReply = card.querySelector('.btn-reply');
+    const btnArchive = card.querySelector('.btn-archive-inline');
+
     if (cat.includes('REQUIERE')) {
-        badge.className = 'category-badge cat-danger';
-        badge.textContent = 'IMPORTANTE';
+        // Important — highlight card, show action buttons
         card.classList.add('has-actions');
+        card.style.background = 'rgba(108, 43, 238, 0.05)';
+        card.style.borderColor = 'rgba(108, 43, 238, 0.1)';
+
+        // Add unread dot before subject
+        const subject = card.querySelector('.email-subject');
+        if (subject && !subject.querySelector('.unread-dot')) {
+            const dot = document.createElement('div');
+            dot.className = 'unread-dot';
+            dot.style.cssText = 'width:8px;height:8px;background:#6c2bee;border-radius:50%;display:inline-block;margin-right:6px;vertical-align:middle;box-shadow:0 0 8px rgba(108,43,238,0.5);';
+            subject.prepend(dot);
+        }
+
+        // Bold the from name
+        const fromEl = card.querySelector('h3');
+        if (fromEl) {
+            fromEl.classList.add('!font-bold');
+            fromEl.style.color = '#f0f1f3';
+        }
+
+        if (actionsDiv) { actionsDiv.classList.remove('hidden'); actionsDiv.classList.add('flex'); }
+        if (btnReply) btnReply.classList.remove('hidden');
+        if (btnArchive) btnArchive.classList.remove('hidden');
     } else if (cat.includes('INFORMATIVO')) {
-        badge.className = 'category-badge cat-warning';
-        badge.textContent = 'INFO';
+        if (badge) {
+            badge.classList.remove('hidden');
+            badge.style.cssText = 'background:rgba(251,191,36,0.15);color:#fbbf24;';
+            badge.textContent = 'INFO';
+        }
+        if (actionsDiv) { actionsDiv.classList.remove('hidden'); actionsDiv.classList.add('flex'); }
     } else if (cat.includes('SPAM') || cat.includes('MARKETING')) {
-        badge.className = 'category-badge cat-muted';
-        badge.textContent = 'SPAM';
-        card.classList.add('spam');
-    } else {
-        badge.className = 'category-badge cat-info';
-        badge.textContent = cat || '';
+        card.style.opacity = '0.35';
+        if (badge) {
+            badge.classList.remove('hidden');
+            badge.style.cssText = 'background:rgba(100,116,139,0.15);color:#64748b;';
+            badge.textContent = 'SPAM';
+        }
+        if (actionsDiv) { actionsDiv.classList.remove('hidden'); actionsDiv.classList.add('flex'); }
     }
 }
 
@@ -169,9 +198,13 @@ function filterEmails(filter) {
     activeFilter = filter;
     applyAllFilters();
 
-    // Actualizar pills de categoría
-    document.querySelectorAll('.pill[data-filter]').forEach(pill => {
-        pill.classList.toggle('active', pill.dataset.filter === filter);
+    // Update filter tabs
+    document.querySelectorAll('.filter-tab[data-filter]').forEach(tab => {
+        if (tab.dataset.filter === filter) {
+            tab.classList.add('active');
+        } else {
+            tab.classList.remove('active');
+        }
     });
 }
 
@@ -179,9 +212,13 @@ function filterBySource(source) {
     activeSourceFilter = source;
     applyAllFilters();
 
-    // Actualizar pills de fuente
-    document.querySelectorAll('.pill[data-source-filter]').forEach(pill => {
-        pill.classList.toggle('active', pill.dataset.sourceFilter === source);
+    // Update source pills
+    document.querySelectorAll('.pill-source[data-source-filter]').forEach(pill => {
+        if (pill.dataset.sourceFilter === source) {
+            pill.classList.add('active');
+        } else {
+            pill.classList.remove('active');
+        }
     });
 }
 
@@ -192,7 +229,6 @@ function applyAllFilters() {
         const cat = (card.dataset.category || '').toUpperCase();
         const source = card.dataset.source || '';
 
-        // Filtro por categoría
         let showByCat = true;
         if (activeFilter === 'requiere') {
             showByCat = cat.includes('REQUIERE');
@@ -202,7 +238,6 @@ function applyAllFilters() {
             showByCat = cat.includes('SPAM') || cat.includes('MARKETING');
         }
 
-        // Filtro por fuente
         let showBySource = true;
         if (activeSourceFilter !== 'all') {
             showBySource = source === activeSourceFilter;
@@ -220,25 +255,25 @@ function applyFilter() {
 
 async function archiveFromList(source, emailId, btn) {
     btn.disabled = true;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm" style="width:12px;height:12px;border-width:1.5px;"></span>';
+    btn.textContent = '...';
 
     try {
         const resp = await fetch(`/email/${source}/${emailId}/archive`, { method: 'POST' });
         const data = await resp.json();
         if (data.status === 'ok') {
-            btn.innerHTML = '<i class="bi bi-check2"></i>';
-            btn.classList.add('archived');
+            btn.textContent = 'ARCHIVADO';
+            btn.className = 'text-[10px] font-bold tracking-wider bg-emerald-600 text-white px-2 py-0.5 rounded uppercase';
             const card = btn.closest('.email-card');
             if (card) {
                 card.style.opacity = '0.3';
                 setTimeout(() => card.remove(), 1000);
             }
         } else {
-            btn.innerHTML = '<i class="bi bi-x"></i>';
+            btn.textContent = 'ERROR';
             btn.disabled = false;
         }
     } catch (e) {
-        btn.innerHTML = '<i class="bi bi-x"></i>';
+        btn.textContent = 'ERROR';
         btn.disabled = false;
     }
 }
@@ -251,9 +286,9 @@ async function analyzeEmail(source, emailId) {
     const result = document.getElementById('ai-result');
     const btn = document.getElementById('btn-analyze');
 
-    panel.style.display = 'block';
-    loading.style.display = 'block';
-    result.style.display = 'none';
+    panel.classList.remove('hidden');
+    loading.classList.remove('hidden');
+    result.classList.add('hidden');
     btn.disabled = true;
 
     try {
@@ -261,17 +296,17 @@ async function analyzeEmail(source, emailId) {
         const data = await resp.json();
 
         if (data.error) {
-            loading.innerHTML = `<span class="text-danger small">${escapeHtml(data.error)}</span>`;
+            loading.innerHTML = `<span class="text-red-400 text-sm">${escapeHtml(data.error)}</span>`;
             return;
         }
 
         document.getElementById('ai-category').textContent = data.category;
-        document.getElementById('ai-category').className = 'badge ' + getCategoryClass(data.category);
+        document.getElementById('ai-category').className = 'inline-block text-xs font-bold px-2.5 py-1 rounded ' + getCategoryClass(data.category);
         document.getElementById('ai-summary').textContent = data.summary;
 
         if (data.draft_response) {
             document.getElementById('ai-draft').textContent = data.draft_response;
-            document.getElementById('ai-draft-section').style.display = 'block';
+            document.getElementById('ai-draft-section').classList.remove('hidden');
 
             if (data.category && data.category.toUpperCase().includes('REQUIERE')) {
                 const replyBody = document.getElementById('reply-body');
@@ -280,13 +315,13 @@ async function analyzeEmail(source, emailId) {
                 }
             }
         } else {
-            document.getElementById('ai-draft-section').style.display = 'none';
+            document.getElementById('ai-draft-section').classList.add('hidden');
         }
 
-        loading.style.display = 'none';
-        result.style.display = 'block';
+        loading.classList.add('hidden');
+        result.classList.remove('hidden');
     } catch (e) {
-        loading.innerHTML = '<span class="text-danger small">Error al analizar.</span>';
+        loading.innerHTML = '<span class="text-red-400 text-sm">Error al analizar.</span>';
     } finally {
         btn.disabled = false;
     }
@@ -309,15 +344,15 @@ async function markAsRead(source, emailId) {
         const resp = await fetch(`/email/${source}/${emailId}/mark-read`, { method: 'POST' });
         const data = await resp.json();
         if (data.status === 'ok') {
-            btn.innerHTML = '<i class="bi bi-check2-all"></i> Leído — redirigiendo...';
-            btn.className = 'btn btn-sm btn-ghost text-success';
+            btn.innerHTML = '<span class="material-symbols-outlined text-[16px]">check</span> Leido';
+            btn.classList.add('!text-emerald-400');
             setTimeout(() => { window.location.href = '/'; }, 1000);
         } else {
-            btn.innerHTML = '<i class="bi bi-x"></i> Error';
+            btn.innerHTML = '<span class="material-symbols-outlined text-[16px]">error</span> Error';
             btn.disabled = false;
         }
     } catch (e) {
-        btn.innerHTML = '<i class="bi bi-x"></i> Error';
+        btn.innerHTML = '<span class="material-symbols-outlined text-[16px]">error</span> Error';
         btn.disabled = false;
     }
 }
@@ -333,15 +368,15 @@ async function archiveEmail(source, emailId) {
         const resp = await fetch(`/email/${source}/${emailId}/archive`, { method: 'POST' });
         const data = await resp.json();
         if (data.status === 'ok') {
-            btn.innerHTML = '<i class="bi bi-archive-fill"></i> Archivado — redirigiendo...';
-            btn.className = 'btn btn-sm btn-archive archived';
+            btn.innerHTML = '<span class="material-symbols-outlined text-[16px]">archive</span> Archivado';
+            btn.classList.add('!text-emerald-400');
             setTimeout(() => { window.location.href = '/'; }, 1000);
         } else {
-            btn.innerHTML = '<i class="bi bi-x"></i> Error';
+            btn.innerHTML = '<span class="material-symbols-outlined text-[16px]">error</span> Error';
             btn.disabled = false;
         }
     } catch (e) {
-        btn.innerHTML = '<i class="bi bi-x"></i> Error';
+        btn.innerHTML = '<span class="material-symbols-outlined text-[16px]">error</span> Error';
         btn.disabled = false;
     }
 }
@@ -370,30 +405,30 @@ async function sendReply(event) {
         const data = await resp.json();
 
         if (data.status === 'ok') {
-            btn.innerHTML = '<i class="bi bi-check2"></i> Enviado — redirigiendo...';
-            btn.className = 'btn w-100 btn-success';
+            btn.innerHTML = '<span class="material-symbols-outlined text-[16px]">check</span> Enviado';
+            btn.className = 'w-full py-3 bg-emerald-600 text-white rounded-xl font-bold text-sm';
             setTimeout(() => { window.location.href = '/'; }, 1500);
         } else {
             alert('Error: ' + (data.error || 'No se pudo enviar'));
             btn.disabled = false;
-            btn.innerHTML = '<i class="bi bi-send-fill"></i> Enviar respuesta';
+            btn.innerHTML = '<span class="material-symbols-outlined text-[16px]">send</span> Enviar respuesta';
         }
     } catch (e) {
-        alert('Error de conexión');
+        alert('Error de conexion');
         btn.disabled = false;
-        btn.innerHTML = '<i class="bi bi-send-fill"></i> Enviar respuesta';
+        btn.innerHTML = '<span class="material-symbols-outlined text-[16px]">send</span> Enviar respuesta';
     }
 }
 
 // --- Utilidades ---
 
 function getCategoryClass(category) {
-    if (!category) return 'bg-secondary';
+    if (!category) return 'bg-slate-600 text-white';
     const c = category.toUpperCase();
-    if (c.includes('REQUIERE')) return 'bg-danger';
-    if (c.includes('INFORMATIVO')) return 'bg-warning text-dark';
-    if (c.includes('SPAM') || c.includes('MARKETING')) return 'bg-secondary';
-    return 'bg-info';
+    if (c.includes('REQUIERE')) return 'bg-red-500/20 text-red-400';
+    if (c.includes('INFORMATIVO')) return 'bg-amber-500/20 text-amber-400';
+    if (c.includes('SPAM') || c.includes('MARKETING')) return 'bg-slate-500/20 text-slate-400';
+    return 'bg-primary/20 text-primary';
 }
 
 function escapeHtml(text) {

@@ -2,32 +2,35 @@
 {% block title %}Conectar Outlook - Email Agent{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center mt-5">
-    <div class="col-md-6">
-        <div class="card text-center">
-            <div class="card-header">
-                <i class="bi bi-microsoft fs-4"></i>
-                <h5 class="mt-2">Autenticación de Microsoft</h5>
+<div class="flex-1 flex items-center justify-center p-8">
+    <div class="w-full max-w-md">
+        <div class="bg-slate-50 dark:bg-background-dark/50 rounded-xl border border-slate-200 dark:border-primary/10 overflow-hidden text-center">
+            <div class="px-6 py-5 border-b border-slate-200 dark:border-primary/10">
+                <span class="material-symbols-outlined text-primary text-[32px] mb-2">corporate_fare</span>
+                <h2 class="text-lg font-bold">Autenticacion de Microsoft</h2>
             </div>
-            <div class="card-body py-4">
-                <p>Abre el siguiente enlace e ingresa el código:</p>
+            <div class="p-8">
+                <p class="text-sm text-slate-400 mb-4">Abre el siguiente enlace e ingresa el codigo:</p>
 
-                <a href="{{ verification_uri }}" target="_blank" class="btn btn-outline-primary mb-3">
-                    <i class="bi bi-box-arrow-up-right"></i> {{ verification_uri }}
+                <a href="{{ verification_uri }}" target="_blank"
+                   class="inline-flex items-center gap-2 px-4 py-2 border border-primary/30 text-primary text-sm font-medium rounded-lg hover:bg-primary/10 transition-colors no-underline mb-6">
+                    <span class="material-symbols-outlined text-[16px]">open_in_new</span>
+                    {{ verification_uri }}
                 </a>
 
-                <div class="my-4">
-                    <div class="display-4 fw-bold font-monospace user-select-all" id="device-code">
+                <div class="my-6">
+                    <div class="text-4xl font-bold font-mono tracking-widest select-all text-slate-100" id="device-code">
                         {{ user_code }}
                     </div>
-                    <button class="btn btn-sm btn-outline-light mt-2" onclick="copyCode()">
-                        <i class="bi bi-clipboard"></i> Copiar código
+                    <button class="mt-3 text-xs font-semibold text-primary hover:text-primary/80 transition-colors flex items-center gap-1 mx-auto" onclick="copyCode()">
+                        <span class="material-symbols-outlined text-[14px]">content_copy</span>
+                        Copiar codigo
                     </button>
                 </div>
 
-                <div id="auth-status">
-                    <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
-                    <span class="ms-2">Esperando autenticación...</span>
+                <div id="auth-status" class="flex items-center justify-center gap-2 text-sm text-slate-400">
+                    <span class="spinner-border spinner-border-sm text-primary"></span>
+                    Esperando autenticacion...
                 </div>
             </div>
         </div>
@@ -42,7 +45,6 @@
         navigator.clipboard.writeText(code);
     }
 
-    // Polling cada 3 segundos para verificar si se completó la auth
     const pollInterval = setInterval(async () => {
         try {
             const resp = await fetch('/auth/outlook/poll');
@@ -51,16 +53,14 @@
             if (data.status === 'success') {
                 clearInterval(pollInterval);
                 document.getElementById('auth-status').innerHTML =
-                    '<span class="text-success"><i class="bi bi-check-circle"></i> Conectado exitosamente. Redirigiendo...</span>';
+                    '<span class="material-symbols-outlined text-emerald-400 text-[18px]">check_circle</span> <span class="text-emerald-400">Conectado exitosamente. Redirigiendo...</span>';
                 setTimeout(() => window.location.href = '/', 1500);
             } else if (data.status === 'error') {
                 clearInterval(pollInterval);
                 document.getElementById('auth-status').innerHTML =
-                    '<span class="text-danger"><i class="bi bi-x-circle"></i> Error de autenticación. <a href="/">Volver</a></span>';
+                    '<span class="material-symbols-outlined text-red-400 text-[18px]">error</span> <span class="text-red-400">Error de autenticacion. <a href="/" class="underline text-primary">Volver</a></span>';
             }
-        } catch (e) {
-            // Seguir intentando
-        }
+        } catch (e) {}
     }, 3000);
 </script>
 {% endblock %}

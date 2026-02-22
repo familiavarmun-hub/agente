@@ -2,105 +2,130 @@
 {% block title %}{{ email.subject }} - Email Agent{% endblock %}
 
 {% block content %}
-<div class="detail-container">
-    <a href="{{ url_for('index') }}" class="btn btn-sm btn-ghost mb-3" style="font-size: 0.75rem;">
-        <i class="bi bi-chevron-left"></i> Bandeja de entrada
-    </a>
+<!-- Header -->
+<header class="flex items-center justify-between px-8 py-4 border-b border-slate-200 dark:border-primary/10">
+    <div class="flex items-center gap-4">
+        <a href="{{ url_for('index') }}" class="p-2 hover:bg-slate-100 dark:hover:bg-primary/10 rounded-full text-slate-500 dark:text-slate-400 transition-colors no-underline">
+            <span class="material-symbols-outlined text-[20px]">arrow_back</span>
+        </a>
+        <h2 class="text-lg font-bold tracking-tight truncate max-w-[500px]">{{ email.subject }}</h2>
+    </div>
+    <div class="flex items-center gap-2">
+        <button class="flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-primary/10 rounded-lg transition-colors" onclick="markAsRead('{{ email.source }}', '{{ email.id }}')" id="btn-mark-read">
+            <span class="material-symbols-outlined text-[18px]">done_all</span>
+            <span class="hidden sm:inline">Leido</span>
+        </button>
+        <button class="flex items-center gap-2 px-3 py-2 text-sm font-medium text-amber-500 hover:bg-amber-500/10 rounded-lg transition-colors" onclick="archiveEmail('{{ email.source }}', '{{ email.id }}')" id="btn-archive">
+            <span class="material-symbols-outlined text-[18px]">archive</span>
+            <span class="hidden sm:inline">Archivar</span>
+        </button>
+        <button class="flex items-center gap-2 px-4 py-2 bg-primary/10 hover:bg-primary/20 text-primary rounded-xl text-sm font-semibold transition-all" onclick="analyzeEmail('{{ email.source }}', '{{ email.id }}')" id="btn-analyze">
+            <span class="material-symbols-outlined text-[18px]">auto_awesome</span>
+            <span class="hidden sm:inline">Analizar con IA</span>
+        </button>
+    </div>
+</header>
 
-    <div class="detail-grid">
-        <!-- Email -->
-        <div class="detail-email">
-            <div class="detail-header">
-                <div class="d-flex align-items-start gap-3">
-                    <div class="email-avatar email-avatar-lg">
-                        {{ email.from[0]|upper if email.from else '?' }}
-                    </div>
-                    <div>
-                        <h5>{{ email.subject }}</h5>
-                        <div style="color: var(--text-2); font-size: 0.78rem;">
-                            <strong style="color: var(--text-1);">{{ email.from }}</strong>
+<div class="flex-1 overflow-y-auto custom-scrollbar">
+    <div class="max-w-5xl mx-auto p-6">
+        <div class="grid grid-cols-1 xl:grid-cols-[1fr_340px] gap-6 items-start">
+            <!-- Email Content -->
+            <div class="bg-slate-50 dark:bg-background-dark/50 rounded-xl border border-slate-200 dark:border-primary/10 overflow-hidden">
+                <!-- Email header -->
+                <div class="flex items-start justify-between p-6 border-b border-slate-200 dark:border-primary/10">
+                    <div class="flex items-start gap-4">
+                        <div class="size-12 rounded-full flex items-center justify-center font-bold text-white shrink-0
+                            {% if email.source == 'Gmail' %}bg-gradient-to-br from-red-500 to-red-400
+                            {% elif email.source == 'Outlook' %}bg-gradient-to-br from-blue-600 to-blue-400
+                            {% else %}bg-gradient-to-br from-primary to-purple-400{% endif %}">
+                            {{ email.from[0]|upper if email.from else '?' }}
                         </div>
-                        <div style="color: var(--text-3); font-size: 0.7rem; margin-top: 2px;">
-                            {% if email.date %}
-                                {{ email.date.strftime('%d/%m/%Y %H:%M') }}
-                            {% else %}
-                                {{ email.date_str }}
-                            {% endif %}
+                        <div>
+                            <h3 class="text-base font-bold mb-0.5">{{ email.subject }}</h3>
+                            <p class="text-sm text-slate-300">
+                                <strong class="text-slate-100">{{ email.from }}</strong>
+                            </p>
+                            <p class="text-xs text-slate-500 mt-0.5">
+                                {% if email.date %}{{ email.date.strftime('%d/%m/%Y %H:%M') }}{% else %}{{ email.date_str }}{% endif %}
+                            </p>
+                        </div>
+                    </div>
+                    <span class="shrink-0 text-[10px] font-bold tracking-wider px-2.5 py-1 rounded uppercase
+                        {% if email.source == 'Gmail' %}bg-red-500/15 text-red-400
+                        {% elif email.source == 'Outlook' %}bg-blue-500/15 text-blue-400
+                        {% else %}bg-primary/15 text-primary{% endif %}">
+                        {{ email.source }}
+                    </span>
+                </div>
+                <!-- Email body -->
+                <div class="p-6 max-h-[60vh] overflow-y-auto custom-scrollbar">
+                    <pre class="whitespace-pre-wrap break-words font-[Inter] text-sm text-slate-400 dark:text-slate-300 leading-7 m-0 bg-transparent border-none p-0">{{ email.body }}</pre>
+                </div>
+            </div>
+
+            <!-- Right Sidebar: AI Analysis + Reply -->
+            <div class="flex flex-col gap-4 xl:sticky xl:top-6">
+                <!-- AI Analysis Panel -->
+                <div class="bg-slate-50 dark:bg-background-dark/50 rounded-xl border border-slate-200 dark:border-primary/10 overflow-hidden hidden" id="ai-panel">
+                    <div class="flex items-center gap-2 px-5 py-3 border-b border-slate-200 dark:border-primary/10 text-sm font-semibold text-primary">
+                        <span class="material-symbols-outlined text-[18px]">auto_awesome</span>
+                        Analisis IA
+                    </div>
+                    <div class="p-5">
+                        <div id="ai-loading" class="flex items-center justify-center gap-2 py-4">
+                            <span class="spinner-border spinner-border-sm text-primary"></span>
+                            <span class="text-sm text-slate-400">Analizando...</span>
+                        </div>
+                        <div id="ai-result" class="hidden">
+                            <div class="mb-4">
+                                <span id="ai-category" class="inline-block text-xs font-bold px-2.5 py-1 rounded"></span>
+                            </div>
+                            <div class="mb-4">
+                                <div class="text-[11px] font-bold text-slate-500 tracking-widest uppercase mb-1.5">Resumen</div>
+                                <p id="ai-summary" class="text-sm text-slate-300 leading-relaxed m-0"></p>
+                            </div>
+                            <div id="ai-draft-section" class="hidden">
+                                <div class="text-[11px] font-bold text-slate-500 tracking-widest uppercase mb-1.5">Borrador sugerido</div>
+                                <div id="ai-draft" class="p-3 bg-black/20 border border-primary/10 rounded-lg text-sm text-slate-300 whitespace-pre-wrap max-h-48 overflow-y-auto leading-relaxed"></div>
+                                <button class="mt-2 text-xs font-semibold text-primary hover:text-primary/80 transition-colors flex items-center gap-1" onclick="useDraft()">
+                                    <span class="material-symbols-outlined text-[14px]">edit</span>
+                                    Usar como respuesta
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
-                <span class="source-tag source-{{ email.source|lower }}">{{ email.source }}</span>
-            </div>
-            <div class="detail-body">
-                <pre class="email-body">{{ email.body }}</pre>
-            </div>
-            <div class="detail-actions">
-                <button class="btn btn-sm btn-scan" onclick="analyzeEmail('{{ email.source }}', '{{ email.id }}')" id="btn-analyze">
-                    <i class="bi bi-stars"></i> Analizar con IA
-                </button>
-                <button class="btn btn-sm btn-ghost" onclick="markAsRead('{{ email.source }}', '{{ email.id }}')" id="btn-mark-read">
-                    <i class="bi bi-check2"></i> Marcar como leído
-                </button>
-                <button class="btn btn-sm btn-archive" onclick="archiveEmail('{{ email.source }}', '{{ email.id }}')" id="btn-archive">
-                    <i class="bi bi-archive"></i> Archivar
-                </button>
-            </div>
-        </div>
 
-        <!-- Panel lateral -->
-        <div class="detail-sidebar">
-            <!-- Análisis IA -->
-            <div class="panel" id="ai-panel" style="display: none;">
-                <div class="panel-header">
-                    <i class="bi bi-stars" style="color: var(--accent);"></i> Análisis IA
-                </div>
-                <div class="panel-body">
-                    <div id="ai-loading" class="text-center py-3">
-                        <div class="spinner-border spinner-border-sm" role="status" style="color: var(--accent);"></div>
-                        <span class="ms-2 small" style="color: var(--text-3);">Analizando...</span>
+                <!-- Reply Form -->
+                <div class="bg-slate-50 dark:bg-background-dark/50 rounded-xl border border-primary/20 overflow-hidden">
+                    <div class="flex items-center gap-2 px-5 py-3 border-b border-primary/10 bg-primary/5 text-sm font-semibold text-primary">
+                        <span class="material-symbols-outlined text-[18px]">reply</span>
+                        Responder
                     </div>
-                    <div id="ai-result" style="display: none;">
-                        <div class="mb-3">
-                            <span id="ai-category" class="badge"></span>
-                        </div>
-                        <div class="mb-3">
-                            <div class="small mb-1" style="color: var(--text-3); font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600;">Resumen</div>
-                            <p id="ai-summary" class="mb-0" style="font-size: 0.8rem; color: var(--text-2); line-height: 1.6;"></p>
-                        </div>
-                        <div id="ai-draft-section">
-                            <div class="small mb-1" style="color: var(--text-3); font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600;">Borrador sugerido</div>
-                            <div class="draft-box" id="ai-draft"></div>
-                            <button class="btn btn-sm btn-ghost mt-2" onclick="useDraft()" style="color: var(--accent);">
-                                <i class="bi bi-pencil-square"></i> Usar como respuesta
+                    <div class="p-5">
+                        <form id="reply-form" onsubmit="sendReply(event)">
+                            <div class="mb-3">
+                                <label class="block text-[11px] font-bold text-slate-500 tracking-widest uppercase mb-1">Para</label>
+                                <input type="email" id="reply-to" value="{{ reply_to }}" required
+                                    class="w-full px-3 py-2 bg-black/20 border border-primary/10 rounded-lg text-sm text-slate-100 focus:ring-2 focus:ring-primary/30 focus:border-primary/40 transition-all placeholder:text-slate-600">
+                            </div>
+                            <div class="mb-3">
+                                <label class="block text-[11px] font-bold text-slate-500 tracking-widest uppercase mb-1">Asunto</label>
+                                <input type="text" id="reply-subject" value="Re: {{ email.subject }}"
+                                    class="w-full px-3 py-2 bg-black/20 border border-primary/10 rounded-lg text-sm text-slate-100 focus:ring-2 focus:ring-primary/30 focus:border-primary/40 transition-all placeholder:text-slate-600">
+                            </div>
+                            <div class="mb-4">
+                                <label class="block text-[11px] font-bold text-slate-500 tracking-widest uppercase mb-1">Mensaje</label>
+                                <textarea id="reply-body" rows="8" required placeholder="El borrador de IA aparecera aqui..."
+                                    class="w-full px-3 py-2 bg-black/20 border border-primary/10 rounded-lg text-sm text-slate-100 focus:ring-2 focus:ring-primary/30 focus:border-primary/40 transition-all placeholder:text-slate-600 resize-y"></textarea>
+                            </div>
+                            <button type="submit" id="btn-send"
+                                class="w-full py-3 bg-primary hover:bg-primary/90 text-white rounded-xl font-bold text-sm transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2">
+                                <span class="material-symbols-outlined text-[18px]">send</span>
+                                Enviar respuesta
                             </button>
-                        </div>
+                        </form>
                     </div>
-                </div>
-            </div>
-
-            <!-- Formulario de respuesta -->
-            <div class="panel panel-primary">
-                <div class="panel-header panel-header-primary">
-                    <i class="bi bi-reply-fill"></i> Responder
-                </div>
-                <div class="panel-body">
-                    <form id="reply-form" onsubmit="sendReply(event)">
-                        <div class="mb-2">
-                            <label class="form-label" style="font-size: 0.68rem; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600;">Para</label>
-                            <input type="email" class="form-control form-control-sm input-clean" id="reply-to" value="{{ reply_to }}" required>
-                        </div>
-                        <div class="mb-2">
-                            <label class="form-label" style="font-size: 0.68rem; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600;">Asunto</label>
-                            <input type="text" class="form-control form-control-sm input-clean" id="reply-subject" value="Re: {{ email.subject }}">
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label" style="font-size: 0.68rem; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600;">Mensaje</label>
-                            <textarea class="form-control input-clean" id="reply-body" rows="8" placeholder="El borrador de IA aparecerá aquí..." required></textarea>
-                        </div>
-                        <button type="submit" class="btn btn-primary w-100" id="btn-send" style="padding: 8px;">
-                            <i class="bi bi-send-fill"></i> Enviar respuesta
-                        </button>
-                    </form>
                 </div>
             </div>
         </div>
