@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}Conectar Outlook - Email Agent{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-6">
+        <div class="card text-center">
+            <div class="card-header">
+                <i class="bi bi-microsoft fs-4"></i>
+                <h5 class="mt-2">Autenticación de Microsoft</h5>
+            </div>
+            <div class="card-body py-4">
+                <p>Abre el siguiente enlace e ingresa el código:</p>
+
+                <a href="{{ verification_uri }}" target="_blank" class="btn btn-outline-primary mb-3">
+                    <i class="bi bi-box-arrow-up-right"></i> {{ verification_uri }}
+                </a>
+
+                <div class="my-4">
+                    <div class="display-4 fw-bold font-monospace user-select-all" id="device-code">
+                        {{ user_code }}
+                    </div>
+                    <button class="btn btn-sm btn-outline-light mt-2" onclick="copyCode()">
+                        <i class="bi bi-clipboard"></i> Copiar código
+                    </button>
+                </div>
+
+                <div id="auth-status">
+                    <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                    <span class="ms-2">Esperando autenticación...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function copyCode() {
+        const code = document.getElementById('device-code').textContent.trim();
+        navigator.clipboard.writeText(code);
+    }
+
+    // Polling cada 3 segundos para verificar si se completó la auth
+    const pollInterval = setInterval(async () => {
+        try {
+            const resp = await fetch('/auth/outlook/poll');
+            const data = await resp.json();
+
+            if (data.status === 'success') {
+                clearInterval(pollInterval);
+                document.getElementById('auth-status').innerHTML =
+                    '<span class="text-success"><i class="bi bi-check-circle"></i> Conectado exitosamente. Redirigiendo...</span>';
+                setTimeout(() => window.location.href = '/', 1500);
+            } else if (data.status === 'error') {
+                clearInterval(pollInterval);
+                document.getElementById('auth-status').innerHTML =
+                    '<span class="text-danger"><i class="bi bi-x-circle"></i> Error de autenticación. <a href="/">Volver</a></span>';
+            }
+        } catch (e) {
+            // Seguir intentando
+        }
+    }, 3000);
+</script>
+{% endblock %}

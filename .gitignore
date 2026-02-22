@@ -1,0 +1,10 @@
+.env
+gmail_credentials.json
+gmail_token.json
+outlook_token_cache.json
+analysis_cache.json
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/

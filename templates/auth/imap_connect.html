@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Agregar cuenta IMAP - Email Agent{% endblock %}
+
+{% block content %}
+<div class="detail-container" style="max-width: 600px; margin: 0 auto;">
+    <a href="{{ url_for('index') }}" class="btn btn-sm btn-ghost mb-3">
+        <i class="bi bi-arrow-left"></i> Volver
+    </a>
+
+    <div class="panel">
+        <div class="panel-header">
+            <i class="bi bi-envelope-plus"></i> Agregar cuenta de correo (IMAP)
+        </div>
+        <div class="panel-body">
+            <form method="POST" action="{{ url_for('auth.imap_add') }}">
+                <div class="mb-3">
+                    <label class="form-label small text-muted">Nombre de la cuenta</label>
+                    <input type="text" class="form-control input-clean" name="name" placeholder="Ej: Sendvialo" required>
+                </div>
+
+                <hr class="border-secondary">
+                <div class="small text-muted mb-2 fw-semibold">Servidor de entrada (IMAP)</div>
+
+                <div class="row g-2 mb-2">
+                    <div class="col-8">
+                        <label class="form-label small text-muted">Host IMAP</label>
+                        <input type="text" class="form-control form-control-sm input-clean" name="host" placeholder="imap.ejemplo.com" required>
+                    </div>
+                    <div class="col-4">
+                        <label class="form-label small text-muted">Puerto</label>
+                        <input type="number" class="form-control form-control-sm input-clean" name="port" value="993">
+                    </div>
+                </div>
+
+                <div class="mb-2">
+                    <label class="form-label small text-muted">Email</label>
+                    <input type="email" class="form-control form-control-sm input-clean" name="email" placeholder="tu@ejemplo.com" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small text-muted">Contraseña</label>
+                    <input type="password" class="form-control form-control-sm input-clean" name="password" required>
+                </div>
+
+                <hr class="border-secondary">
+                <div class="small text-muted mb-2 fw-semibold">Servidor de salida (SMTP)</div>
+
+                <div class="row g-2 mb-3">
+                    <div class="col-8">
+                        <label class="form-label small text-muted">Host SMTP</label>
+                        <input type="text" class="form-control form-control-sm input-clean" name="smtp_host" placeholder="smtp.ejemplo.com (opcional)">
+                    </div>
+                    <div class="col-4">
+                        <label class="form-label small text-muted">Puerto</label>
+                        <input type="number" class="form-control form-control-sm input-clean" name="smtp_port" value="587">
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-plug"></i> Conectar cuenta
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

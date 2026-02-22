@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% block title %}{{ email.subject }} - Email Agent{% endblock %}
+
+{% block content %}
+<div class="detail-container">
+    <a href="{{ url_for('index') }}" class="btn btn-sm btn-ghost mb-3" style="font-size: 0.75rem;">
+        <i class="bi bi-chevron-left"></i> Bandeja de entrada
+    </a>
+
+    <div class="detail-grid">
+        <!-- Email -->
+        <div class="detail-email">
+            <div class="detail-header">
+                <div class="d-flex align-items-start gap-3">
+                    <div class="email-avatar email-avatar-lg">
+                        {{ email.from[0]|upper if email.from else '?' }}
+                    </div>
+                    <div>
+                        <h5>{{ email.subject }}</h5>
+                        <div style="color: var(--text-2); font-size: 0.78rem;">
+                            <strong style="color: var(--text-1);">{{ email.from }}</strong>
+                        </div>
+                        <div style="color: var(--text-3); font-size: 0.7rem; margin-top: 2px;">
+                            {% if email.date %}
+                                {{ email.date.strftime('%d/%m/%Y %H:%M') }}
+                            {% else %}
+                                {{ email.date_str }}
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                <span class="source-tag source-{{ email.source|lower }}">{{ email.source }}</span>
+            </div>
+            <div class="detail-body">
+                <pre class="email-body">{{ email.body }}</pre>
+            </div>
+            <div class="detail-actions">
+                <button class="btn btn-sm btn-scan" onclick="analyzeEmail('{{ email.source }}', '{{ email.id }}')" id="btn-analyze">
+                    <i class="bi bi-stars"></i> Analizar con IA
+                </button>
+                <button class="btn btn-sm btn-ghost" onclick="markAsRead('{{ email.source }}', '{{ email.id }}')" id="btn-mark-read">
+                    <i class="bi bi-check2"></i> Marcar como leído
+                </button>
+                <button class="btn btn-sm btn-archive" onclick="archiveEmail('{{ email.source }}', '{{ email.id }}')" id="btn-archive">
+                    <i class="bi bi-archive"></i> Archivar
+                </button>
+            </div>
+        </div>
+
+        <!-- Panel lateral -->
+        <div class="detail-sidebar">
+            <!-- Análisis IA -->
+            <div class="panel" id="ai-panel" style="display: none;">
+                <div class="panel-header">
+                    <i class="bi bi-stars" style="color: var(--accent);"></i> Análisis IA
+                </div>
+                <div class="panel-body">
+                    <div id="ai-loading" class="text-center py-3">
+                        <div class="spinner-border spinner-border-sm" role="status" style="color: var(--accent);"></div>
+                        <span class="ms-2 small" style="color: var(--text-3);">Analizando...</span>
+                    </div>
+                    <div id="ai-result" style="display: none;">
+                        <div class="mb-3">
+                            <span id="ai-category" class="badge"></span>
+                        </div>
+                        <div class="mb-3">
+                            <div class="small mb-1" style="color: var(--text-3); font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600;">Resumen</div>
+                            <p id="ai-summary" class="mb-0" style="font-size: 0.8rem; color: var(--text-2); line-height: 1.6;"></p>
+                        </div>
+                        <div id="ai-draft-section">
+                            <div class="small mb-1" style="color: var(--text-3); font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600;">Borrador sugerido</div>
+                            <div class="draft-box" id="ai-draft"></div>
+                            <button class="btn btn-sm btn-ghost mt-2" onclick="useDraft()" style="color: var(--accent);">
+                                <i class="bi bi-pencil-square"></i> Usar como respuesta
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Formulario de respuesta -->
+            <div class="panel panel-primary">
+                <div class="panel-header panel-header-primary">
+                    <i class="bi bi-reply-fill"></i> Responder
+                </div>
+                <div class="panel-body">
+                    <form id="reply-form" onsubmit="sendReply(event)">
+                        <div class="mb-2">
+                            <label class="form-label" style="font-size: 0.68rem; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600;">Para</label>
+                            <input type="email" class="form-control form-control-sm input-clean" id="reply-to" value="{{ reply_to }}" required>
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label" style="font-size: 0.68rem; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600;">Asunto</label>
+                            <input type="text" class="form-control form-control-sm input-clean" id="reply-subject" value="Re: {{ email.subject }}">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" style="font-size: 0.68rem; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600;">Mensaje</label>
+                            <textarea class="form-control input-clean" id="reply-body" rows="8" placeholder="El borrador de IA aparecerá aquí..." required></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100" id="btn-send" style="padding: 8px;">
+                            <i class="bi bi-send-fill"></i> Enviar respuesta
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const EMAIL_SOURCE = '{{ email.source }}';
+    const EMAIL_ID = '{{ email.id }}';
+
+    document.addEventListener('DOMContentLoaded', function() {
+        analyzeEmail(EMAIL_SOURCE, EMAIL_ID);
+    });
+</script>
+{% endblock %}

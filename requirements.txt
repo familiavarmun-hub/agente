@@ -1,0 +1,10 @@
+google-api-python-client
+google-auth-oauthlib
+google-auth-httplib2
+msal
+requests
+openai
+rich
+python-dotenv
+flask
+gunicorn

@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% block title %}Bandeja de Entrada - Email Agent{% endblock %}
+
+{% block content %}
+<div class="inbox-container">
+    <!-- Header -->
+    <div class="inbox-header">
+        <div class="d-flex align-items-center gap-3">
+            <h5 class="mb-0">Bandeja de entrada</h5>
+            <button class="btn btn-sm btn-refresh" id="btn-refresh" onclick="refreshEmails()" title="Buscar correos nuevos">
+                <i class="bi bi-arrow-clockwise"></i>
+            </button>
+        </div>
+
+        <!-- Filtros de categoría IA -->
+        <div class="filter-pills" id="filter-buttons">
+            <button class="pill active" onclick="filterEmails('all')" data-filter="all">
+                Todos <span class="pill-count" id="count-all">{{ emails|length }}</span>
+            </button>
+            <button class="pill pill-danger" onclick="filterEmails('requiere')" data-filter="requiere">
+                Importantes <span class="pill-count" id="count-requiere">-</span>
+            </button>
+            <button class="pill pill-warning" onclick="filterEmails('informativo')" data-filter="informativo">
+                Info <span class="pill-count" id="count-informativo">-</span>
+            </button>
+            <button class="pill pill-muted" onclick="filterEmails('spam')" data-filter="spam">
+                Spam <span class="pill-count" id="count-spam">-</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Barra de escaneo -->
+    <div class="scan-bar" id="scan-bar">
+        <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-stars scan-icon"></i>
+            <span class="small" id="scan-text" style="color: var(--text-2);">Listo para escanear</span>
+        </div>
+        <button class="btn btn-sm btn-scan" id="btn-scan" onclick="startScan()">
+            <i class="bi bi-cpu"></i> Escanear con IA
+        </button>
+        <div class="scan-progress" id="scan-progress-bar">
+            <div class="scan-progress-fill" id="scan-progress"></div>
+        </div>
+    </div>
+
+    <!-- Lista de emails -->
+    {% if emails %}
+    <div class="email-list" id="email-list">
+        {% for email in emails %}
+        <a href="/email/{{ email.source }}/{{ email.id }}" class="email-card" data-source="{{ email.source }}" data-id="{{ email.id }}" data-category="">
+            <div class="email-card-left">
+                <div class="email-avatar">
+                    {{ email.from[0]|upper if email.from else '?' }}
+                </div>
+                <span class="category-badge" data-row-id="{{ email.id }}"></span>
+            </div>
+            <div class="email-card-body">
+                <div class="email-card-top">
+                    <span class="email-from">{{ email.from }}</span>
+                    <span class="email-date">
+                        {% if email.date %}{{ email.date.strftime('%d/%m %H:%M') }}{% else %}{{ email.date_str[:16] }}{% endif %}
+                    </span>
+                </div>
+                <div class="email-subject">{{ email.subject }}</div>
+                <div class="email-snippet">{{ email.snippet }}</div>
+            </div>
+            <div class="email-card-right">
+                <span class="source-dot source-{{ email.source|lower }}" title="{{ email.source }}"></span>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+    {% elif gmail_connected or outlook_connected or imap_connected %}
+    <div class="empty-state">
+        <i class="bi bi-inbox"></i>
+        <p>No hay correos no leídos</p>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="bi bi-envelope-plus"></i>
+        <p>Conecta una cuenta de correo para empezar</p>
+        <div class="d-flex gap-2 justify-content-center mt-3">
+            <a href="{{ url_for('auth.gmail_connect') }}" class="btn btn-sm btn-outline-light" style="font-size:0.78rem;">
+                <i class="bi bi-google"></i> Gmail
+            </a>
+            <a href="{{ url_for('auth.outlook_connect') }}" class="btn btn-sm btn-outline-light" style="font-size:0.78rem;">
+                <i class="bi bi-microsoft"></i> Outlook
+            </a>
+            <a href="{{ url_for('auth.imap_add') }}" class="btn btn-sm btn-outline-light" style="font-size:0.78rem;">
+                <i class="bi bi-envelope"></i> IMAP
+            </a>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const cards = document.querySelectorAll('.email-card[data-source]');
+        if (cards.length > 0) {
+            startScan();
+        }
+    });
+</script>
+{% endblock %}
