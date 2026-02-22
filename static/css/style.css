@@ -77,9 +77,14 @@ a.email-card:hover {
     color: inherit;
 }
 
-/* --- Sidebar responsive --- */
-@media (max-width: 1023px) {
-    .sidebar-panel {
-        display: none;
+/* --- Sidebar: hidden on mobile, shown via drawer --- */
+/* On lg+ the drawer is always visible (relative positioned) */
+@media (min-width: 1024px) {
+    .sidebar-drawer {
+        transform: none !important;
+        position: relative !important;
+    }
+    .sidebar-overlay {
+        display: none !important;
     }
 }

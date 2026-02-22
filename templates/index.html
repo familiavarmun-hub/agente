@@ -3,22 +3,26 @@
 
 {% block content %}
 <!-- Header -->
-<header class="flex items-center justify-between px-8 py-4 border-b border-slate-200 dark:border-primary/10">
-    <div class="flex items-center gap-4">
-        <h2 class="text-xl font-bold tracking-tight">Bandeja de entrada</h2>
-        <button class="p-2 hover:bg-slate-100 dark:hover:bg-primary/10 rounded-full text-slate-500 dark:text-slate-400 transition-colors" id="btn-refresh" onclick="refreshEmails()">
-            <span class="material-symbols-outlined text-[20px]">refresh</span>
+<header class="flex items-center justify-between px-4 sm:px-8 py-3 sm:py-4 border-b border-slate-200 dark:border-primary/10">
+    <div class="flex items-center gap-2 sm:gap-4">
+        <!-- Hamburger menu (mobile only) -->
+        <button class="p-2 text-slate-400 hover:text-primary transition-colors lg:hidden" onclick="openSidebar()">
+            <span class="material-symbols-outlined text-[22px]">menu</span>
+        </button>
+        <h2 class="text-base sm:text-xl font-bold tracking-tight">Bandeja</h2>
+        <button class="p-1.5 sm:p-2 hover:bg-slate-100 dark:hover:bg-primary/10 rounded-full text-slate-500 dark:text-slate-400 transition-colors" id="btn-refresh" onclick="refreshEmails()">
+            <span class="material-symbols-outlined text-[18px] sm:text-[20px]">refresh</span>
         </button>
     </div>
-    <div class="flex items-center gap-4">
+    <div class="flex items-center gap-2 sm:gap-4">
         <!-- Scan button -->
-        <button class="flex items-center gap-2 px-4 py-2 bg-primary/10 hover:bg-primary/20 text-primary rounded-xl text-sm font-semibold transition-all" id="btn-scan" onclick="startScan()">
-            <span class="material-symbols-outlined text-[18px]">auto_awesome</span>
-            <span class="hidden sm:inline">Escanear con IA</span>
+        <button class="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-primary/10 hover:bg-primary/20 text-primary rounded-xl text-xs sm:text-sm font-semibold transition-all" id="btn-scan" onclick="startScan()">
+            <span class="material-symbols-outlined text-[16px] sm:text-[18px]">auto_awesome</span>
+            <span class="hidden xs:inline">IA</span>
         </button>
         {% if sources|length > 1 %}
-        <button class="p-2 text-slate-500 hover:text-primary transition-colors lg:hidden" onclick="document.getElementById('mobile-source-filter').classList.toggle('hidden')">
-            <span class="material-symbols-outlined">filter_list</span>
+        <button class="p-1.5 text-slate-500 hover:text-primary transition-colors lg:hidden" onclick="document.getElementById('mobile-source-filter').classList.toggle('hidden')">
+            <span class="material-symbols-outlined text-[20px]">filter_list</span>
         </button>
         {% endif %}
     </div>
@@ -29,14 +33,14 @@
     <div class="scan-progress-bar" id="scan-progress-bar">
         <div class="scan-progress-fill" id="scan-progress"></div>
     </div>
-    <div class="px-8 py-1.5 text-xs text-slate-500 dark:text-slate-400 hidden" id="scan-text-container">
+    <div class="px-4 sm:px-8 py-1 text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 hidden" id="scan-text-container">
         <span id="scan-text">Listo para escanear</span>
     </div>
 </div>
 
 <!-- Mobile source filter -->
 {% if sources|length > 1 %}
-<div class="hidden px-8 py-2 border-b border-slate-200 dark:border-primary/10 lg:hidden" id="mobile-source-filter">
+<div class="hidden px-4 sm:px-8 py-2 border-b border-slate-200 dark:border-primary/10 lg:hidden" id="mobile-source-filter">
     <div class="flex gap-2 overflow-x-auto">
         <button class="pill-source active shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-all" onclick="filterBySource('all')" data-source-filter="all">
             Todas
@@ -51,41 +55,41 @@
 {% endif %}
 
 <!-- Filters Bar -->
-<div class="px-8 border-b border-slate-200 dark:border-primary/10 bg-slate-50/50 dark:bg-background-dark/30" id="filter-buttons">
-    <div class="flex gap-8 overflow-x-auto">
-        <button class="filter-tab active relative py-4 flex items-center gap-2 group shrink-0" onclick="filterEmails('all')" data-filter="all">
-            <span class="tab-label text-sm font-bold">Todos</span>
-            <span class="tab-count text-[10px] font-bold px-1.5 py-0.5 rounded-full" id="count-all">{{ emails|length }}</span>
+<div class="px-4 sm:px-8 border-b border-slate-200 dark:border-primary/10 bg-slate-50/50 dark:bg-background-dark/30" id="filter-buttons">
+    <div class="flex gap-4 sm:gap-8 overflow-x-auto -mb-px">
+        <button class="filter-tab active relative py-3 sm:py-4 flex items-center gap-1.5 sm:gap-2 group shrink-0" onclick="filterEmails('all')" data-filter="all">
+            <span class="tab-label text-xs sm:text-sm font-bold">Todos</span>
+            <span class="tab-count text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded-full" id="count-all">{{ emails|length }}</span>
             <div class="tab-indicator absolute bottom-0 left-0 right-0 h-0.5 rounded-t-full"></div>
         </button>
-        <button class="filter-tab relative py-4 flex items-center gap-2 group shrink-0" onclick="filterEmails('requiere')" data-filter="requiere">
-            <span class="tab-label text-sm font-semibold">Importantes</span>
-            <span class="tab-count text-[10px] font-bold px-1.5 py-0.5 rounded-full" id="count-requiere">-</span>
+        <button class="filter-tab relative py-3 sm:py-4 flex items-center gap-1.5 sm:gap-2 group shrink-0" onclick="filterEmails('requiere')" data-filter="requiere">
+            <span class="tab-label text-xs sm:text-sm font-semibold">Importantes</span>
+            <span class="tab-count text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded-full" id="count-requiere">-</span>
             <div class="tab-indicator absolute bottom-0 left-0 right-0 h-0.5 rounded-t-full"></div>
         </button>
-        <button class="filter-tab relative py-4 flex items-center gap-2 group shrink-0" onclick="filterEmails('informativo')" data-filter="informativo">
-            <span class="tab-label text-sm font-semibold">Info</span>
-            <span class="tab-count text-[10px] font-bold px-1.5 py-0.5 rounded-full" id="count-informativo">-</span>
+        <button class="filter-tab relative py-3 sm:py-4 flex items-center gap-1.5 sm:gap-2 group shrink-0" onclick="filterEmails('informativo')" data-filter="informativo">
+            <span class="tab-label text-xs sm:text-sm font-semibold">Info</span>
+            <span class="tab-count text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded-full" id="count-informativo">-</span>
             <div class="tab-indicator absolute bottom-0 left-0 right-0 h-0.5 rounded-t-full"></div>
         </button>
-        <button class="filter-tab relative py-4 flex items-center gap-2 group shrink-0" onclick="filterEmails('spam')" data-filter="spam">
-            <span class="tab-label text-sm font-semibold">Spam</span>
-            <span class="tab-count text-[10px] font-bold px-1.5 py-0.5 rounded-full" id="count-spam">-</span>
+        <button class="filter-tab relative py-3 sm:py-4 flex items-center gap-1.5 sm:gap-2 group shrink-0" onclick="filterEmails('spam')" data-filter="spam">
+            <span class="tab-label text-xs sm:text-sm font-semibold">Spam</span>
+            <span class="tab-count text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded-full" id="count-spam">-</span>
             <div class="tab-indicator absolute bottom-0 left-0 right-0 h-0.5 rounded-t-full"></div>
         </button>
     </div>
 </div>
 
 <!-- Email List -->
-<div class="flex-1 overflow-y-auto custom-scrollbar p-6">
+<div class="flex-1 overflow-y-auto custom-scrollbar p-3 sm:p-6">
     {% if emails %}
-    <div class="flex flex-col gap-3" id="email-list">
+    <div class="flex flex-col gap-2 sm:gap-3" id="email-list">
         {% for email in emails %}
         <a href="/email/{{ email.source }}/{{ email.id }}"
-           class="email-card flex items-start gap-4 p-4 rounded-xl border border-transparent hover:bg-slate-50 dark:hover:bg-primary/5 hover:border-slate-200 dark:hover:border-primary/10 cursor-pointer transition-all no-underline text-inherit"
+           class="email-card flex items-start gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl border border-transparent hover:bg-slate-50 dark:hover:bg-primary/5 hover:border-slate-200 dark:hover:border-primary/10 cursor-pointer transition-all no-underline text-inherit"
            data-source="{{ email.source }}" data-id="{{ email.id }}" data-category="">
             <!-- Avatar -->
-            <div class="size-11 rounded-full flex items-center justify-center font-bold shrink-0 text-white
+            <div class="size-9 sm:size-11 rounded-full flex items-center justify-center font-bold shrink-0 text-white text-xs sm:text-base
                 {% if email.source == 'Gmail' %}bg-gradient-to-br from-red-500 to-red-400
                 {% elif email.source == 'Outlook' %}bg-gradient-to-br from-blue-600 to-blue-400
                 {% else %}bg-gradient-to-br from-primary to-purple-400{% endif %}">
@@ -94,50 +98,48 @@
             <!-- Content -->
             <div class="flex flex-col flex-1 min-w-0">
                 <div class="flex items-center justify-between mb-0.5">
-                    <div class="flex items-center gap-2">
-                        <h3 class="text-sm font-semibold text-slate-800 dark:text-slate-200 truncate max-w-[280px]">{{ email.from }}</h3>
-                    </div>
-                    <span class="text-xs text-slate-400 shrink-0 tabular-nums">
+                    <h3 class="text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200 truncate max-w-[160px] sm:max-w-[280px]">{{ email.from }}</h3>
+                    <span class="text-[10px] sm:text-xs text-slate-400 shrink-0 tabular-nums ml-2">
                         {% if email.date %}{{ email.date.strftime('%d/%m %H:%M') }}{% else %}{{ email.date_str[:16] }}{% endif %}
                     </span>
                 </div>
-                <h4 class="email-subject text-sm font-medium text-slate-600 dark:text-slate-300 mb-1 truncate">
+                <h4 class="email-subject text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-300 mb-0.5 sm:mb-1 truncate">
                     {{ email.subject }}
                 </h4>
-                <p class="text-sm text-slate-400 dark:text-slate-500 line-clamp-1 leading-relaxed">{{ email.snippet }}</p>
-                <!-- Action buttons (shown after AI scan for important emails) -->
-                <div class="email-actions mt-3 gap-2 hidden" data-actions-id="{{ email.id }}">
-                    <span class="category-badge text-[10px] font-extrabold tracking-wider px-2 py-0.5 rounded uppercase hidden" data-row-id="{{ email.id }}"></span>
-                    <button class="btn-reply text-[10px] font-extrabold tracking-wider bg-emerald-600 text-white px-2 py-0.5 rounded uppercase hover:bg-emerald-700 transition-colors hidden" onclick="event.preventDefault(); window.location.href='/email/{{ email.source }}/{{ email.id }}';">RESPONDER</button>
-                    <button class="btn-archive-inline text-[10px] font-bold tracking-wider bg-amber-500 text-slate-900 px-2 py-0.5 rounded uppercase hover:bg-amber-600 transition-colors hidden" onclick="event.preventDefault(); archiveFromList('{{ email.source }}', '{{ email.id }}', this);">ARCHIVAR</button>
+                <p class="text-[11px] sm:text-sm text-slate-400 dark:text-slate-500 line-clamp-1 leading-relaxed">{{ email.snippet }}</p>
+                <!-- Action buttons (shown after AI scan) -->
+                <div class="email-actions mt-2 sm:mt-3 gap-2 hidden flex-wrap" data-actions-id="{{ email.id }}">
+                    <span class="category-badge text-[9px] sm:text-[10px] font-extrabold tracking-wider px-2 py-0.5 rounded uppercase hidden" data-row-id="{{ email.id }}"></span>
+                    <button class="btn-reply text-[9px] sm:text-[10px] font-extrabold tracking-wider bg-emerald-600 text-white px-2 py-0.5 rounded uppercase hover:bg-emerald-700 transition-colors hidden" onclick="event.preventDefault(); window.location.href='/email/{{ email.source }}/{{ email.id }}';">RESPONDER</button>
+                    <button class="btn-archive-inline text-[9px] sm:text-[10px] font-bold tracking-wider bg-amber-500 text-slate-900 px-2 py-0.5 rounded uppercase hover:bg-amber-600 transition-colors hidden" onclick="event.preventDefault(); archiveFromList('{{ email.source }}', '{{ email.id }}', this);">ARCHIVAR</button>
                 </div>
             </div>
         </a>
         {% endfor %}
     </div>
     {% elif gmail_connected or outlook_connected or imap_connected %}
-    <div class="flex flex-col items-center justify-center py-24 text-center">
-        <div class="size-20 rounded-2xl bg-primary/10 flex items-center justify-center mb-6">
-            <span class="material-symbols-outlined text-primary text-[40px]">inbox</span>
+    <div class="flex flex-col items-center justify-center py-16 sm:py-24 text-center px-4">
+        <div class="size-16 sm:size-20 rounded-2xl bg-primary/10 flex items-center justify-center mb-4 sm:mb-6">
+            <span class="material-symbols-outlined text-primary text-[32px] sm:text-[40px]">inbox</span>
         </div>
-        <h3 class="text-lg font-bold mb-2">No hay correos no leidos</h3>
-        <p class="text-sm text-slate-500 dark:text-slate-400">Todos tus correos han sido procesados.</p>
+        <h3 class="text-base sm:text-lg font-bold mb-2">No hay correos no leidos</h3>
+        <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400">Todos tus correos han sido procesados.</p>
     </div>
     {% else %}
-    <div class="flex flex-col items-center justify-center py-24 text-center">
-        <div class="size-20 rounded-2xl bg-primary/10 flex items-center justify-center mb-6">
-            <span class="material-symbols-outlined text-primary text-[40px]">mail</span>
+    <div class="flex flex-col items-center justify-center py-16 sm:py-24 text-center px-4">
+        <div class="size-16 sm:size-20 rounded-2xl bg-primary/10 flex items-center justify-center mb-4 sm:mb-6">
+            <span class="material-symbols-outlined text-primary text-[32px] sm:text-[40px]">mail</span>
         </div>
-        <h3 class="text-lg font-bold mb-2">Conecta una cuenta de correo</h3>
-        <p class="text-sm text-slate-500 dark:text-slate-400 max-w-[280px] mb-6">Agrega tu cuenta de Gmail, Outlook o IMAP para empezar.</p>
-        <div class="flex gap-3">
-            <a href="{{ url_for('auth.gmail_connect') }}" class="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-medium hover:border-primary/50 transition-colors no-underline text-inherit">
+        <h3 class="text-base sm:text-lg font-bold mb-2">Conecta una cuenta</h3>
+        <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 max-w-[280px] mb-6">Agrega tu cuenta de Gmail, Outlook o IMAP para empezar.</p>
+        <div class="flex flex-wrap gap-2 sm:gap-3 justify-center">
+            <a href="{{ url_for('auth.gmail_connect') }}" class="flex items-center gap-2 px-3 sm:px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs sm:text-sm font-medium hover:border-primary/50 transition-colors no-underline text-inherit">
                 Gmail
             </a>
-            <a href="{{ url_for('auth.outlook_connect') }}" class="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-medium hover:border-primary/50 transition-colors no-underline text-inherit">
+            <a href="{{ url_for('auth.outlook_connect') }}" class="flex items-center gap-2 px-3 sm:px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs sm:text-sm font-medium hover:border-primary/50 transition-colors no-underline text-inherit">
                 Outlook
             </a>
-            <a href="{{ url_for('auth.imap_add') }}" class="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-medium hover:border-primary/50 transition-colors no-underline text-inherit">
+            <a href="{{ url_for('auth.imap_add') }}" class="flex items-center gap-2 px-3 sm:px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs sm:text-sm font-medium hover:border-primary/50 transition-colors no-underline text-inherit">
                 IMAP
             </a>
         </div>
@@ -147,7 +149,8 @@
 {% endblock %}
 
 {% block right_panel %}
-<aside class="w-80 h-full border-l border-slate-200 dark:border-primary/10 bg-slate-50 dark:bg-background-dark/30 p-8 hidden xl:flex flex-col items-center justify-center text-center">
+<!-- Right panel: hidden on mobile and tablets -->
+<aside class="w-80 h-full border-l border-slate-200 dark:border-primary/10 bg-slate-50 dark:bg-background-dark/30 p-8 hidden xl:flex flex-col items-center justify-center text-center shrink-0">
     <div class="size-20 rounded-2xl bg-primary/10 flex items-center justify-center mb-6">
         <span class="material-symbols-outlined text-primary text-[40px]">mark_email_read</span>
     </div>

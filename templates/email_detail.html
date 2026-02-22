@@ -3,54 +3,52 @@
 
 {% block content %}
 <!-- Header -->
-<header class="flex items-center justify-between px-8 py-4 border-b border-slate-200 dark:border-primary/10">
-    <div class="flex items-center gap-4">
-        <a href="{{ url_for('index') }}" class="p-2 hover:bg-slate-100 dark:hover:bg-primary/10 rounded-full text-slate-500 dark:text-slate-400 transition-colors no-underline">
+<header class="flex items-center justify-between px-3 sm:px-8 py-3 sm:py-4 border-b border-slate-200 dark:border-primary/10">
+    <div class="flex items-center gap-2 sm:gap-4 min-w-0">
+        <a href="{{ url_for('index') }}" class="p-1.5 sm:p-2 hover:bg-slate-100 dark:hover:bg-primary/10 rounded-full text-slate-500 dark:text-slate-400 transition-colors no-underline shrink-0">
             <span class="material-symbols-outlined text-[20px]">arrow_back</span>
         </a>
-        <h2 class="text-lg font-bold tracking-tight truncate max-w-[500px]">{{ email.subject }}</h2>
+        <h2 class="text-sm sm:text-lg font-bold tracking-tight truncate">{{ email.subject }}</h2>
     </div>
-    <div class="flex items-center gap-2">
-        <button class="flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-primary/10 rounded-lg transition-colors" onclick="markAsRead('{{ email.source }}', '{{ email.id }}')" id="btn-mark-read">
-            <span class="material-symbols-outlined text-[18px]">done_all</span>
-            <span class="hidden sm:inline">Leido</span>
+    <div class="flex items-center gap-1 sm:gap-2 shrink-0">
+        <button class="flex items-center gap-1 px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-primary/10 rounded-lg transition-colors" onclick="markAsRead('{{ email.source }}', '{{ email.id }}')" id="btn-mark-read">
+            <span class="material-symbols-outlined text-[16px] sm:text-[18px]">done_all</span>
         </button>
-        <button class="flex items-center gap-2 px-3 py-2 text-sm font-medium text-amber-500 hover:bg-amber-500/10 rounded-lg transition-colors" onclick="archiveEmail('{{ email.source }}', '{{ email.id }}')" id="btn-archive">
-            <span class="material-symbols-outlined text-[18px]">archive</span>
-            <span class="hidden sm:inline">Archivar</span>
+        <button class="flex items-center gap-1 px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-amber-500 hover:bg-amber-500/10 rounded-lg transition-colors" onclick="archiveEmail('{{ email.source }}', '{{ email.id }}')" id="btn-archive">
+            <span class="material-symbols-outlined text-[16px] sm:text-[18px]">archive</span>
         </button>
-        <button class="flex items-center gap-2 px-4 py-2 bg-primary/10 hover:bg-primary/20 text-primary rounded-xl text-sm font-semibold transition-all" onclick="analyzeEmail('{{ email.source }}', '{{ email.id }}')" id="btn-analyze">
-            <span class="material-symbols-outlined text-[18px]">auto_awesome</span>
-            <span class="hidden sm:inline">Analizar con IA</span>
+        <button class="flex items-center gap-1 px-2 sm:px-4 py-1.5 sm:py-2 bg-primary/10 hover:bg-primary/20 text-primary rounded-xl text-xs sm:text-sm font-semibold transition-all" onclick="analyzeEmail('{{ email.source }}', '{{ email.id }}')" id="btn-analyze">
+            <span class="material-symbols-outlined text-[16px] sm:text-[18px]">auto_awesome</span>
+            <span class="hidden sm:inline">IA</span>
         </button>
     </div>
 </header>
 
 <div class="flex-1 overflow-y-auto custom-scrollbar">
-    <div class="max-w-5xl mx-auto p-6">
-        <div class="grid grid-cols-1 xl:grid-cols-[1fr_340px] gap-6 items-start">
+    <div class="max-w-5xl mx-auto p-3 sm:p-6">
+        <div class="grid grid-cols-1 xl:grid-cols-[1fr_340px] gap-4 sm:gap-6 items-start">
             <!-- Email Content -->
             <div class="bg-slate-50 dark:bg-background-dark/50 rounded-xl border border-slate-200 dark:border-primary/10 overflow-hidden">
                 <!-- Email header -->
-                <div class="flex items-start justify-between p-6 border-b border-slate-200 dark:border-primary/10">
-                    <div class="flex items-start gap-4">
-                        <div class="size-12 rounded-full flex items-center justify-center font-bold text-white shrink-0
+                <div class="flex items-start justify-between p-4 sm:p-6 border-b border-slate-200 dark:border-primary/10 gap-3">
+                    <div class="flex items-start gap-3 sm:gap-4 min-w-0">
+                        <div class="size-10 sm:size-12 rounded-full flex items-center justify-center font-bold text-white shrink-0 text-sm sm:text-base
                             {% if email.source == 'Gmail' %}bg-gradient-to-br from-red-500 to-red-400
                             {% elif email.source == 'Outlook' %}bg-gradient-to-br from-blue-600 to-blue-400
                             {% else %}bg-gradient-to-br from-primary to-purple-400{% endif %}">
                             {{ email.from[0]|upper if email.from else '?' }}
                         </div>
-                        <div>
-                            <h3 class="text-base font-bold mb-0.5">{{ email.subject }}</h3>
-                            <p class="text-sm text-slate-300">
+                        <div class="min-w-0">
+                            <h3 class="text-sm sm:text-base font-bold mb-0.5 truncate">{{ email.subject }}</h3>
+                            <p class="text-xs sm:text-sm text-slate-300 truncate">
                                 <strong class="text-slate-100">{{ email.from }}</strong>
                             </p>
-                            <p class="text-xs text-slate-500 mt-0.5">
+                            <p class="text-[10px] sm:text-xs text-slate-500 mt-0.5">
                                 {% if email.date %}{{ email.date.strftime('%d/%m/%Y %H:%M') }}{% else %}{{ email.date_str }}{% endif %}
                             </p>
                         </div>
                     </div>
-                    <span class="shrink-0 text-[10px] font-bold tracking-wider px-2.5 py-1 rounded uppercase
+                    <span class="shrink-0 text-[9px] sm:text-[10px] font-bold tracking-wider px-2 py-0.5 sm:px-2.5 sm:py-1 rounded uppercase
                         {% if email.source == 'Gmail' %}bg-red-500/15 text-red-400
                         {% elif email.source == 'Outlook' %}bg-blue-500/15 text-blue-400
                         {% else %}bg-primary/15 text-primary{% endif %}">
@@ -58,8 +56,8 @@
                     </span>
                 </div>
                 <!-- Email body -->
-                <div class="p-6 max-h-[60vh] overflow-y-auto custom-scrollbar">
-                    <pre class="whitespace-pre-wrap break-words font-[Inter] text-sm text-slate-400 dark:text-slate-300 leading-7 m-0 bg-transparent border-none p-0">{{ email.body }}</pre>
+                <div class="p-4 sm:p-6 max-h-[50vh] sm:max-h-[60vh] overflow-y-auto custom-scrollbar">
+                    <pre class="whitespace-pre-wrap break-words font-[Inter] text-xs sm:text-sm text-slate-400 dark:text-slate-300 leading-6 sm:leading-7 m-0 bg-transparent border-none p-0">{{ email.body }}</pre>
                 </div>
             </div>
 
@@ -67,11 +65,11 @@
             <div class="flex flex-col gap-4 xl:sticky xl:top-6">
                 <!-- AI Analysis Panel -->
                 <div class="bg-slate-50 dark:bg-background-dark/50 rounded-xl border border-slate-200 dark:border-primary/10 overflow-hidden hidden" id="ai-panel">
-                    <div class="flex items-center gap-2 px-5 py-3 border-b border-slate-200 dark:border-primary/10 text-sm font-semibold text-primary">
+                    <div class="flex items-center gap-2 px-4 sm:px-5 py-3 border-b border-slate-200 dark:border-primary/10 text-sm font-semibold text-primary">
                         <span class="material-symbols-outlined text-[18px]">auto_awesome</span>
                         Analisis IA
                     </div>
-                    <div class="p-5">
+                    <div class="p-4 sm:p-5">
                         <div id="ai-loading" class="flex items-center justify-center gap-2 py-4">
                             <span class="spinner-border spinner-border-sm text-primary"></span>
                             <span class="text-sm text-slate-400">Analizando...</span>
@@ -82,11 +80,11 @@
                             </div>
                             <div class="mb-4">
                                 <div class="text-[11px] font-bold text-slate-500 tracking-widest uppercase mb-1.5">Resumen</div>
-                                <p id="ai-summary" class="text-sm text-slate-300 leading-relaxed m-0"></p>
+                                <p id="ai-summary" class="text-xs sm:text-sm text-slate-300 leading-relaxed m-0"></p>
                             </div>
                             <div id="ai-draft-section" class="hidden">
                                 <div class="text-[11px] font-bold text-slate-500 tracking-widest uppercase mb-1.5">Borrador sugerido</div>
-                                <div id="ai-draft" class="p-3 bg-black/20 border border-primary/10 rounded-lg text-sm text-slate-300 whitespace-pre-wrap max-h-48 overflow-y-auto leading-relaxed"></div>
+                                <div id="ai-draft" class="p-3 bg-black/20 border border-primary/10 rounded-lg text-xs sm:text-sm text-slate-300 whitespace-pre-wrap max-h-40 sm:max-h-48 overflow-y-auto leading-relaxed"></div>
                                 <button class="mt-2 text-xs font-semibold text-primary hover:text-primary/80 transition-colors flex items-center gap-1" onclick="useDraft()">
                                     <span class="material-symbols-outlined text-[14px]">edit</span>
                                     Usar como respuesta
@@ -98,11 +96,11 @@
 
                 <!-- Reply Form -->
                 <div class="bg-slate-50 dark:bg-background-dark/50 rounded-xl border border-primary/20 overflow-hidden">
-                    <div class="flex items-center gap-2 px-5 py-3 border-b border-primary/10 bg-primary/5 text-sm font-semibold text-primary">
+                    <div class="flex items-center gap-2 px-4 sm:px-5 py-3 border-b border-primary/10 bg-primary/5 text-sm font-semibold text-primary">
                         <span class="material-symbols-outlined text-[18px]">reply</span>
                         Responder
                     </div>
-                    <div class="p-5">
+                    <div class="p-4 sm:p-5">
                         <form id="reply-form" onsubmit="sendReply(event)">
                             <div class="mb-3">
                                 <label class="block text-[11px] font-bold text-slate-500 tracking-widest uppercase mb-1">Para</label>
@@ -116,11 +114,11 @@
                             </div>
                             <div class="mb-4">
                                 <label class="block text-[11px] font-bold text-slate-500 tracking-widest uppercase mb-1">Mensaje</label>
-                                <textarea id="reply-body" rows="8" required placeholder="El borrador de IA aparecera aqui..."
+                                <textarea id="reply-body" rows="6" required placeholder="El borrador de IA aparecera aqui..."
                                     class="w-full px-3 py-2 bg-black/20 border border-primary/10 rounded-lg text-sm text-slate-100 focus:ring-2 focus:ring-primary/30 focus:border-primary/40 transition-all placeholder:text-slate-600 resize-y"></textarea>
                             </div>
                             <button type="submit" id="btn-send"
-                                class="w-full py-3 bg-primary hover:bg-primary/90 text-white rounded-xl font-bold text-sm transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2">
+                                class="w-full py-2.5 sm:py-3 bg-primary hover:bg-primary/90 text-white rounded-xl font-bold text-sm transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2">
                                 <span class="material-symbols-outlined text-[18px]">send</span>
                                 Enviar respuesta
                             </button>

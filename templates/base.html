@@ -40,11 +40,15 @@
         .spinner-border { display: inline-block; width: 1rem; height: 1rem; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: spin 0.75s linear infinite; }
         .spinner-border-sm { width: 0.85rem; height: 0.85rem; border-width: 1.5px; }
         @keyframes spin { to { transform: rotate(360deg); } }
-        /* Flash messages */
-        .flash-msg { padding: 10px 16px; border-radius: 8px; font-size: 0.82rem; margin: 12px 24px 0; }
+        .flash-msg { padding: 10px 16px; border-radius: 8px; font-size: 0.82rem; margin: 12px 16px 0; }
         .flash-success { background: rgba(52,211,153,0.1); color: #34d399; border: 1px solid rgba(52,211,153,0.2); }
         .flash-error { background: rgba(248,113,113,0.1); color: #f87171; border: 1px solid rgba(248,113,113,0.2); }
         .flash-info { background: rgba(108,43,238,0.1); color: #a78bfa; border: 1px solid rgba(108,43,238,0.2); }
+        /* Mobile sidebar overlay */
+        .sidebar-overlay { display: none; }
+        .sidebar-overlay.open { display: block; }
+        .sidebar-drawer { transform: translateX(-100%); transition: transform 200ms ease; }
+        .sidebar-drawer.open { transform: translateX(0); }
     </style>
     <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
 
@@ -65,10 +69,18 @@
     {% endmacro %}
 </head>
 <body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 antialiased overflow-hidden">
-    <div class="flex h-screen w-full">
+    <div class="flex h-screen w-full relative">
 
-        <!-- Sidebar Navigation -->
-        <aside class="sidebar-panel w-64 flex flex-col h-full bg-slate-50 dark:bg-background-dark/50 border-r border-slate-200 dark:border-primary/10 p-4 shrink-0">
+        <!-- Mobile sidebar overlay (dark backdrop) -->
+        <div class="sidebar-overlay fixed inset-0 bg-black/60 z-40 lg:hidden" id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+        <!-- Sidebar Navigation — hidden on mobile, shown as drawer on toggle -->
+        <aside class="sidebar-drawer fixed inset-y-0 left-0 z-50 w-64 flex flex-col h-full bg-slate-50 dark:bg-[#1a1030] border-r border-slate-200 dark:border-primary/10 p-4 lg:relative lg:transform-none lg:flex" id="sidebar-drawer">
+            <!-- Close button (mobile only) -->
+            <button class="lg:hidden absolute top-3 right-3 p-1 text-slate-400 hover:text-white" onclick="closeSidebar()">
+                <span class="material-symbols-outlined text-[20px]">close</span>
+            </button>
+
             <div class="flex items-center gap-3 px-2 mb-8">
                 <div class="bg-primary p-2 rounded-lg flex items-center justify-center">
                     <span class="material-symbols-outlined text-white">mail</span>
@@ -80,7 +92,7 @@
             </div>
 
             <nav class="space-y-1 mb-10">
-                <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-primary/10 text-primary transition-all duration-200" href="{{ url_for('index') }}">
+                <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-primary/10 text-primary transition-all duration-200 no-underline" href="{{ url_for('index') }}" onclick="closeSidebar()">
                     <span class="material-symbols-outlined text-[22px]">inbox</span>
                     <span class="text-sm font-semibold">Bandeja de entrada</span>
                 </a>
@@ -92,12 +104,12 @@
                 </div>
                 <div class="space-y-1 custom-scrollbar overflow-y-auto px-1">
                     {% if gmail_connected %}
-                    <div class="flex items-center gap-3 px-2 py-2 cursor-pointer group">
+                    <div class="flex items-center gap-3 px-2 py-2 group">
                         <div class="size-8 flex items-center justify-center bg-white dark:bg-slate-800 rounded-lg shadow-sm">
                             {{ icon_gmail() }}
                         </div>
                         <div class="flex flex-col flex-1">
-                            <span class="text-sm font-medium group-hover:text-primary transition-colors">Gmail</span>
+                            <span class="text-sm font-medium">Gmail</span>
                             <span class="text-[10px] text-emerald-500">Conectado</span>
                         </div>
                         <a href="{{ url_for('auth.gmail_disconnect') }}" class="text-slate-500 hover:text-red-400 transition-colors" title="Desconectar">
@@ -105,24 +117,24 @@
                         </a>
                     </div>
                     {% else %}
-                    <a href="{{ url_for('auth.gmail_connect') }}" class="flex items-center gap-3 px-2 py-2 cursor-pointer group opacity-50 hover:opacity-100 transition-opacity">
+                    <a href="{{ url_for('auth.gmail_connect') }}" class="flex items-center gap-3 px-2 py-2 group opacity-50 hover:opacity-100 transition-opacity no-underline text-inherit">
                         <div class="size-8 flex items-center justify-center bg-white dark:bg-slate-800 rounded-lg shadow-sm">
                             {{ icon_gmail() }}
                         </div>
                         <div class="flex flex-col">
-                            <span class="text-sm font-medium group-hover:text-primary transition-colors">Gmail</span>
+                            <span class="text-sm font-medium">Gmail</span>
                             <span class="text-[10px] text-primary">Conectar</span>
                         </div>
                     </a>
                     {% endif %}
 
                     {% if outlook_connected %}
-                    <div class="flex items-center gap-3 px-2 py-2 cursor-pointer group">
+                    <div class="flex items-center gap-3 px-2 py-2 group">
                         <div class="size-8 flex items-center justify-center bg-white dark:bg-slate-800 rounded-lg shadow-sm">
                             {{ icon_outlook() }}
                         </div>
                         <div class="flex flex-col flex-1">
-                            <span class="text-sm font-medium group-hover:text-primary transition-colors">Outlook</span>
+                            <span class="text-sm font-medium">Outlook</span>
                             <span class="text-[10px] text-emerald-500">Conectado</span>
                         </div>
                         <a href="{{ url_for('auth.outlook_disconnect') }}" class="text-slate-500 hover:text-red-400 transition-colors" title="Desconectar">
@@ -130,12 +142,12 @@
                         </a>
                     </div>
                     {% else %}
-                    <a href="{{ url_for('auth.outlook_connect') }}" class="flex items-center gap-3 px-2 py-2 cursor-pointer group opacity-50 hover:opacity-100 transition-opacity">
+                    <a href="{{ url_for('auth.outlook_connect') }}" class="flex items-center gap-3 px-2 py-2 group opacity-50 hover:opacity-100 transition-opacity no-underline text-inherit">
                         <div class="size-8 flex items-center justify-center bg-white dark:bg-slate-800 rounded-lg shadow-sm">
                             {{ icon_outlook() }}
                         </div>
                         <div class="flex flex-col">
-                            <span class="text-sm font-medium group-hover:text-primary transition-colors">Outlook</span>
+                            <span class="text-sm font-medium">Outlook</span>
                             <span class="text-[10px] text-primary">Conectar</span>
                         </div>
                     </a>
@@ -143,12 +155,12 @@
 
                     {% for name, connected in imap_connected.items() %}
                     {% if connected %}
-                    <div class="flex items-center gap-3 px-2 py-2 cursor-pointer group">
+                    <div class="flex items-center gap-3 px-2 py-2 group">
                         <div class="size-8 flex items-center justify-center bg-white dark:bg-slate-800 rounded-lg shadow-sm">
                             <span class="material-symbols-outlined text-primary text-[20px]">mail</span>
                         </div>
                         <div class="flex flex-col flex-1">
-                            <span class="text-sm font-medium group-hover:text-primary transition-colors">{{ name }}</span>
+                            <span class="text-sm font-medium">{{ name }}</span>
                             <span class="text-[10px] text-emerald-500">Conectado</span>
                         </div>
                         <a href="{{ url_for('auth.imap_disconnect', name=name) }}" class="text-slate-500 hover:text-red-400 transition-colors" title="Desconectar">
@@ -160,7 +172,7 @@
                 </div>
 
                 <div class="mt-auto pt-4">
-                    <a href="{{ url_for('auth.imap_add') }}" class="w-full flex items-center justify-center gap-2 py-2.5 bg-primary hover:bg-primary/90 text-white rounded-lg transition-all shadow-lg shadow-primary/20">
+                    <a href="{{ url_for('auth.imap_add') }}" class="w-full flex items-center justify-center gap-2 py-2.5 bg-primary hover:bg-primary/90 text-white rounded-lg transition-all shadow-lg shadow-primary/20 no-underline">
                         <span class="material-symbols-outlined text-[18px]">add</span>
                         <span class="text-sm font-bold">Agregar cuenta</span>
                     </a>
@@ -184,6 +196,16 @@
         {% block right_panel %}{% endblock %}
     </div>
 
+    <script>
+        function openSidebar() {
+            document.getElementById('sidebar-overlay').classList.add('open');
+            document.getElementById('sidebar-drawer').classList.add('open');
+        }
+        function closeSidebar() {
+            document.getElementById('sidebar-overlay').classList.remove('open');
+            document.getElementById('sidebar-drawer').classList.remove('open');
+        }
+    </script>
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
     {% block scripts %}{% endblock %}
 </body>
